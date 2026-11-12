@@ -1,5 +1,6 @@
 // 바이옴 안내: 다음 바이옴, 날씨, 출현 포켓몬(등급별 확률), 트레이너·관장
 import { useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import { BOSS_TIER_CHANCE, TIER_NAMES, TIME_NAMES, TYPE_KEY_KO, WILD_TIER_CHANCE, type Biome } from "../lib/official";
 import type { FormStatus } from "../lib/starters";
@@ -66,7 +67,7 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
         ))}
       </nav>
       <div className="biome-detail">
-        <h3>{cur.name}</h3>
+        <h2>{cur.name}</h2>
         <p>
           <span className="label">다음 바이옴</span>{" "}
           {cur.links.length ? (
@@ -99,9 +100,9 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
 
         <BiomeTrainers biome={cur} dex={dex} />
 
-        <h4>야생 포켓몬</h4>
+        <h3>야생 포켓몬</h3>
         <PoolTable biome={cur} dex={dex} status={status} boss={false} />
-        <h4>보스 포켓몬 (10웨이브마다)</h4>
+        <h3>보스 포켓몬 (10웨이브마다)</h3>
         <PoolTable biome={cur} dex={dex} status={status} boss={true} />
         <p className="small muted">
           등급 확률은 게임 코드의 추첨 범위 그대로입니다. 같은 등급 안에서는 그 시간대에 나오는 포켓몬 중 하나가 고르게 뽑힙니다.
@@ -118,7 +119,7 @@ function BiomeTrainers({ biome, dex }: { biome: Biome; dex: Dex }) {
   const typeBadge = (key: string | null) => {
     const fid = dex.fid("type", TYPE_KEY_KO[key ?? ""] ?? "");
     return fid < 0 ? null : (
-      <span className="type" style={{ background: dex.data.typeColors[fid] }}>
+      <span className="type" style={typeStyle(dex.data.typeColors[fid])}>
         {dex.name(fid)}
       </span>
     );

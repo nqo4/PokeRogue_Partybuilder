@@ -1,5 +1,6 @@
 // 특성·기술 이름을 누르면 설명 창을 띄운다.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 
 interface Open {
@@ -88,7 +89,7 @@ function InfoBody({ dex, fid }: { dex: Dex; fid: number }) {
     <>
       <div className="info-title">
         <b>{dex.name(fid)}</b>
-        <span className="type" style={{ background: d.typeColors[move.type] }}>
+        <span className="type" style={typeStyle(d.typeColors[move.type])}>
           {dex.name(move.type)}
         </span>
         <span className={`cat cat-${move.cat}`}>{CATEGORY[move.cat]}</span>
@@ -151,7 +152,7 @@ export function MoveLabel({ fid }: { fid: number }) {
   return (
     <span className="move-label">
       {m && ctx && (
-        <span className="type type-sm" style={{ background: ctx.dex.data.typeColors[m.type] }}>
+        <span className="type type-sm" style={typeStyle(ctx.dex.data.typeColors[m.type])}>
           {ctx.dex.name(m.type)}
         </span>
       )}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { ROLES, ROLE_NAMES, type Candidate, type Reason } from "../lib/classic/candidate";
@@ -17,6 +18,14 @@ interface Props {
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
+/** 요약 줄에 쓰는 짧은 역할 이름 */
+const ROLE_SHORT: Record<(typeof ROLES)[number], string> = {
+  fast: "선공",
+  sweeper: "스위퍼",
+  multi: "광역·쉴드",
+  tank: "막이",
+  support: "서포터",
+};
 const FORM_LIMITS = [0, 1, 2, 3, 4, 5, 6];
 
 export function ClassicRecommenderView({ starters, dex, status }: Props) {
@@ -68,7 +77,7 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
   }
 
   const typeBadge = (fid: number) => (
-    <span key={fid} className="type" style={{ background: dex.data.typeColors[fid] }}>
+    <span key={fid} className="type" style={typeStyle(dex.data.typeColors[fid])}>
       {dex.name(fid)}
     </span>
   );
@@ -160,31 +169,93 @@ function PartyCard({
 }) {
   const a = rec.analysis;
   const forms = a.members.filter(hasFormChange).length;
+  // 근거는 기본으로 접어 두고, 요약 줄에서 누른 포켓몬(또는 전부)만 펼친다
+  const [open, setOpen] = useState<Set<number>>(() => new Set());
+  const allOpen = open.size === a.members.length;
+  const toggle = (i: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  const detailId = `party-${rec.key}-details`;
+
   return (
-    <article className="party">
+    <article className="party" aria-labelledby={`party-${rec.key}-title`}>
       <header className="party-head">
-        <h3>추천 {index + 1}</h3>
-        <span>코스트 {a.cost}/10</span>
-        <span>{a.members.length}마리</span>
-        <span>럭 합계 {a.luck}</span>
-        {forms > 0 && <span>폼 변화 {forms}마리</span>}
-        <span className="muted">
-          역할: {ROLES.filter((r) => a.roleCoverage[r]).map((r) => `${ROLE_NAMES[r]} ${a.roleCoverage[r]}`).join(" · ")}
+        <h2 id={`party-${rec.key}-title`}>추천 {index + 1}</h2>
+        <span className="party-meta">
+          코스트 <b>{a.cost}</b>/10 · {a.members.length}마리 · 럭 합계 {a.luck}
+          {forms > 0 && ` · 폼 변화 ${forms}마리`}
         </span>
       </header>
 
-      <div className="members">
+      <ol className="party-strip">
         {a.members.map((m, i) => (
-          <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} typeBadge={typeBadge} />
+          <li key={m.owned.speciesId}>
+            <button
+              type="button"
+              className={`strip-slot${open.has(i) ? " open" : ""}`}
+              aria-expanded={open.has(i)}
+              aria-controls={detailId}
+              onClick={() => toggle(i)}
+            >
+              <Sprite species={m.form} size={64} />
+              <span className="strip-name">{m.form.name}</span>
+              <span className="strip-types">{m.types.map(typeBadge)}</span>
+              <span className="strip-meta">
+                코스트 {m.owned.cost}
+                {m.owned.luck > 0 && <span className={`luck luck-${m.owned.luck}`}>럭 {m.owned.luck}</span>}
+              </span>
+              <span className="strip-roles">
+                {a.memberRoles[i].length ? a.memberRoles[i].map((r) => ROLE_SHORT[r]).join(" · ") : "보조"}
+              </span>
+            </button>
+          </li>
         ))}
+      </ol>
+
+      <div className="party-risk">
+        {a.dangerTypes.length > 0 ? (
+          <p>
+            <span className="label">조심할 공격</span> {a.dangerTypes.slice(0, 5).map(typeBadge)}
+          </p>
+        ) : (
+          <p className="muted">파티가 함께 약한 타입이 없습니다.</p>
+        )}
+        {a.offenseGaps.length > 0 && (
+          <p>
+            <span className="label">자속기로 약점을 못 찌름</span> {a.offenseGaps.map(typeBadge)}
+          </p>
+        )}
+        <button
+          type="button"
+          className="link-button"
+          aria-expanded={allOpen}
+          aria-controls={detailId}
+          onClick={() => setOpen(allOpen ? new Set() : new Set(a.members.map((_, i) => i)))}
+        >
+          {allOpen ? "근거 모두 접기" : `${a.members.length}마리 근거 모두 펼치기`}
+        </button>
       </div>
+
+      <div id={detailId} className="members" hidden={open.size === 0}>
+        {a.members.map((m, i) =>
+          open.has(i) ? <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} typeBadge={typeBadge} /> : null,
+        )}
+      </div>
+
+      <p className="party-roles small muted">
+        역할 분포: {ROLES.filter((r) => a.roleCoverage[r]).map((r) => `${ROLE_NAMES[r]} ${a.roleCoverage[r]}`).join(" · ")}
+      </p>
 
       <TypeTable a={a} dex={dex} typeBadge={typeBadge} />
       <RouteSection dex={dex} party={a} status={status} />
 
       <div className="party-notes">
         <div>
-          <h4>주의할 점</h4>
+          <h3>주의할 점</h3>
           {a.issues.length ? (
             <ul>
               {a.issues.map((x, i) => (
@@ -196,15 +267,9 @@ function PartyCard({
           ) : (
             <p className="muted small">공통 약점 없음</p>
           )}
-          {a.dangerTypes.length > 0 && (
-            <p className="small">조심할 공격 타입: {a.dangerTypes.slice(0, 5).map(typeBadge)}</p>
-          )}
-          {a.offenseGaps.length > 0 && (
-            <p className="small">자속기로 약점을 못 찌르는 타입: {a.offenseGaps.map(typeBadge)}</p>
-          )}
         </div>
         <div>
-          <h4>보완 후보</h4>
+          <h3>보완 후보</h3>
           {rec.suggestions.length ? (
             <ul>
               {rec.suggestions.map((s) => (

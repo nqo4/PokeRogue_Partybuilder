@@ -56,16 +56,16 @@ const TERMS: [string, string][] = [
 export function Guide() {
   return (
     <section className="guide">
-      <h3>파티 역할</h3>
+      <h2>파티 역할</h2>
       <p className="muted small">
         추천 파티는 아래 역할 중 <b>선공형이나 스위퍼를 최소 1마리</b> 넣고, 나머지로 약점을 보완하도록 짭니다.
       </p>
       <div className="guide-roles">
         {ROLES.map((r) => (
           <article key={r.key} className="guide-card">
-            <h4>
+            <h3>
               <span className={`role role-${r.key}`}>{ROLE_NAMES[r.key]}</span>
-            </h4>
+            </h3>
             <p>{r.what}</p>
             <p className="small">
               <span className="label">판정 기준</span> {r.how}
@@ -77,7 +77,7 @@ export function Guide() {
         ))}
       </div>
 
-      <h3>용어</h3>
+      <h2>용어</h2>
       <dl className="glossary">
         {TERMS.map(([t, d]) => (
           <div key={t}>
@@ -87,7 +87,7 @@ export function Guide() {
         ))}
       </dl>
 
-      <h3>상성표 읽는 법</h3>
+      <h2>상성표 읽는 법</h2>
       <p className="small">
         추천 카드의 "받는 데미지 상성표"는 각 공격 타입을 받았을 때의 배율입니다. <span className="mult m-weak">2</span>·
         <span className="mult m-quad">4</span>는 약점, <span className="mult m-resist">½</span>은 반감,{" "}

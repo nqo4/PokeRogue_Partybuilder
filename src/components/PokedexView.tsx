@@ -1,5 +1,6 @@
 // 포켓몬 도감: 진화형·메가·거다이맥스·폼까지 모든 형태. 세이브가 있으면 못 잡은 형태를 어둡게 흐리게 보여준다.
 import { useMemo, useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import type { FormStatus } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
@@ -107,7 +108,7 @@ export function PokedexView({ dex, status, onOpen }: Props) {
               <span className="tile-name">{s.name}</span>
               <span>
                 {s.types.map((t) => (
-                  <span key={t} className="type" style={{ background: dex.data.typeColors[t] }}>
+                  <span key={t} className="type" style={typeStyle(dex.data.typeColors[t])}>
                     {dex.name(t)}
                   </span>
                 ))}

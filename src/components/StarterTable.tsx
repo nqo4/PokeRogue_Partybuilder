@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex, DexSpecies } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
@@ -93,7 +94,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
   }, [starters, clear, gen, type, form, query, sort, desc]);
 
   const typeBadge = (fid: number) => (
-    <span key={fid} className="type" style={{ background: dex.data.typeColors[fid] }}>
+    <span key={fid} className="type" style={typeStyle(dex.data.typeColors[fid])}>
       {dex.name(fid)}
     </span>
   );

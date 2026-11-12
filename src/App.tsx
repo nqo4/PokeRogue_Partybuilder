@@ -123,28 +123,33 @@ export default function App() {
       <main className="page">
         <header className="header">
           <h1>{TITLES[page]}</h1>
-          <p className="muted small">세이브 파일은 이 브라우저 안에서만 읽고, 서버로 보내지 않습니다.</p>
+          {!summary && <p className="muted small">세이브 파일은 이 브라우저 안에서만 읽고, 서버로 보내지 않습니다.</p>}
         </header>
 
-        <SaveUpload disabled={!dex} onFile={handleFile} compact={!!summary} />
-        {!dex && !error && <p className="muted">도감 데이터를 불러오는 중…</p>}
-        {error && <p className="error">{error}</p>}
-
-        {summary && (
-          <section className="summary">
-            <span>트레이너 ID {summary.trainerId}</span>
-            <span>게임 {summary.gameVersion}</span>
-            <span>저장 {summary.savedAt.toLocaleString("ko-KR")}</span>
-            <span>보유 스타터 {summary.starters.length}종</span>
+        {summary ? (
+          // 세이브를 불러온 뒤에는 한 줄짜리 상태 줄만 남긴다
+          <section className="save-bar" aria-label="불러온 세이브">
+            <span>
+              <b>트레이너 {summary.trainerId}</b>
+            </span>
+            <span>스타터 {summary.starters.length}종</span>
             <span>클래식 미클리어 {summary.starters.filter((s) => s.classicWins === 0).length}종</span>
             {summary.stats.highestEndlessWave != null && (
               <span>무한 최고 {summary.stats.highestEndlessWave.toLocaleString()}층</span>
             )}
+            <span className="muted" title={`게임 ${summary.gameVersion}`}>
+              {summary.savedAt.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" })} 저장
+            </span>
             {summary.unmatched.length > 0 && (
               <span className="error">도감에 없는 스타터 {summary.unmatched.length}종</span>
             )}
+            <SaveUpload disabled={!dex} onFile={handleFile} compact />
           </section>
+        ) : (
+          <SaveUpload disabled={!dex} onFile={handleFile} />
         )}
+        {!dex && !error && <p className="muted">도감 데이터를 불러오는 중…</p>}
+        {error && <p className="error">{error}</p>}
 
         {dex && (
           <OfficialContext.Provider value={official}>

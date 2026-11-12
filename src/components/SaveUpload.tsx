@@ -35,7 +35,7 @@ export function SaveUpload({ disabled, onFile, compact }: Props) {
           e.target.value = "";
         }}
       />
-      <strong>{compact ? "다른 세이브 불러오기" : "세이브 파일(.prsv)을 끌어 놓거나 눌러서 선택"}</strong>
+      {compact ? <span>다른 세이브 불러오기</span> : <strong>세이브 파일(.prsv)을 끌어 놓거나 눌러서 선택</strong>}
       {!compact && <span className="muted">포켓로그 → ESC → 데이터 관리 → 데이터 내보내기</span>}
     </label>
   );

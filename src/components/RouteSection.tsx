@@ -1,5 +1,6 @@
 // 추천 파티 카드 안의 "지도 경로 추천"
 import { useMemo, useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import type { PartyAnalysis } from "../lib/classic/party";
 import { bestRoute } from "../lib/route";
@@ -71,7 +72,7 @@ export function RouteSection({
                         {gi > 0 && ", "}
                         {g.trainer.name}
                         {g.typeFid >= 0 && (
-                          <span className="type type-sm" style={{ background: dex.data.typeColors[g.typeFid] }}>
+                          <span className="type type-sm" style={typeStyle(dex.data.typeColors[g.typeFid])}>
                             {dex.name(g.typeFid)}
                           </span>
                         )}

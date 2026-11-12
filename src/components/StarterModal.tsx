@@ -1,6 +1,7 @@
 // 포켓몬(형태) 상세 화면. 목록 위에 겹쳐 띄워서, 닫으면 목록의 필터·스크롤이 그대로 남는다.
 // 진화형·메가 등 어떤 형태든 열 수 있고, 세이브가 있으면 그 계열 스타터의 해금 상태를 함께 보여준다.
 import { useEffect } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex, DexSpecies } from "../lib/dex";
 import { FORM_NAMES } from "../lib/dex";
 import { NATURE_NAMES } from "../lib/rules";
@@ -38,7 +39,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
   }, [onClose]);
 
   const typeBadge = (fid: number) => (
-    <span key={fid} className="type" style={{ background: dex.data.typeColors[fid] }}>
+    <span key={fid} className="type" style={typeStyle(dex.data.typeColors[fid])}>
       {dex.name(fid)}
     </span>
   );
@@ -78,7 +79,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
               No.{String(nationalDex(species.id)).padStart(4, "0")} · {species.gen}세대 · {stageOf(species)}
               {myStatus && <span className={`status-tag status-${myStatus}`}>{STATUS_LABEL[myStatus]}</span>}
             </div>
-            <h3>{species.name}</h3>
+            <h2>{species.name}</h2>
             {myEvo.length > 0 && <div className="small accent">진화 조건: {myEvo.join(" / ")}</div>}
             <div>
               {species.types.map(typeBadge)}
@@ -111,7 +112,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
 
         <div className="detail-grid">
           <div>
-            <h4>특성 (눌러서 설명 보기)</h4>
+            <h3>특성 (눌러서 설명 보기)</h3>
             <ul>
               {slots.map(([label, fid, unlocked], i) =>
                 fid == null ? null : (
@@ -131,7 +132,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
             </ul>
           </div>
           <div>
-            <h4>알기술 (계열 공통)</h4>
+            <h3>알기술 (계열 공통)</h3>
             <ul className="egg-moves">
               {species.eggMoves.map((fid, i) => {
                 const unlocked = owned?.eggMoves[i]?.unlocked;
@@ -146,7 +147,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
             </ul>
           </div>
           <div>
-            <h4>종족값 · 합계 {species.bst}</h4>
+            <h3>종족값 · 합계 {species.bst}</h3>
             <table className="iv-table">
               <thead>
                 <tr>
@@ -167,7 +168,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
             </table>
             {owned && (
               <>
-                <h4>개체치 (스타터에서 전승)</h4>
+                <h3>개체치 (스타터에서 전승)</h3>
                 <table className="iv-table">
                   <thead>
                     <tr>
@@ -186,16 +187,16 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
                     </tr>
                   </tbody>
                 </table>
-                <h4>해금 성격 {owned.natures.length}/25</h4>
+                <h3>해금 성격 {owned.natures.length}/25</h3>
                 <p className="small">{owned.natures.map((n) => NATURE_NAMES[n]).join(", ")}</p>
               </>
             )}
           </div>
           <div className="wide">
-            <h4>
+            <h3>
               진화 계열 ({dex.familyName(species.family)}){" "}
               <span className="muted small">— 사진을 누르면 그 포켓몬을 봅니다{status && " · 어두운 형태는 아직 잡지 못한 형태"}</span>
-            </h4>
+            </h3>
             <div className="table-wrap">
               <table className="family">
                 <thead>

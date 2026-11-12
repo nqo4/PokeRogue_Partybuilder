@@ -1,5 +1,6 @@
 // 트레이너 도감: 악의 조직별(간부·보스), 리그별(사천왕·챔피언), 바이옴별 관장
 import { useMemo, useState } from "react";
+import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import {
   EVIL_TEAMS,
@@ -33,7 +34,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
     const fid = dex.fid("type", TYPE_KEY_KO[key] ?? "");
     if (fid < 0) return null;
     return (
-      <span className="type" style={{ background: dex.data.typeColors[fid] }}>
+      <span className="type" style={typeStyle(dex.data.typeColors[fid])}>
         {dex.name(fid)}
       </span>
     );
@@ -124,10 +125,10 @@ export function TrainersView({ dex }: { dex: Dex }) {
     const boss2 = byType(waveSlot(official, "EVIL_BOSS_2", i));
     return (
       <div key={team.name} className="trainer-group evil-team">
-        <h4>
+        <h2>
           {team.name} <span className="muted small">({team.gens.join("·")}세대)</span>
-        </h4>
-        <h5>간부</h5>
+        </h2>
+        <h3>간부</h3>
         <div className="trainer-grid">
           {[...adminWaves].map(([type, waves]) => {
             const t = official.trainerByType.get(type);
@@ -135,7 +136,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
             return card(t, `· ${waves.join("·")}웨이브`, "주 포켓몬 (마지막 칸이 에이스)", { ace: true });
           })}
         </div>
-        <h5>보스</h5>
+        <h3>보스</h3>
         <div className="trainer-grid">
           {boss1.map((t) => card(t, "· 1차전 115웨이브", "6마리 모두 고정입니다. 점선 「택1」 칸은 그중 한 마리가 나옵니다."))}
           {boss2.map((t) => card(t, "· 2차전 165웨이브", "6마리 모두 고정입니다. 점선 「택1」 칸은 그중 한 마리가 나옵니다."))}
@@ -151,10 +152,10 @@ export function TrainersView({ dex }: { dex: Dex }) {
     const champs = waveSlot(official, "CHAMPION", i);
     return (
       <div key={region.name} className="trainer-group evil-team">
-        <h4>
+        <h2>
           {region.name} 리그 <span className="muted small">({region.gen}세대)</span>
-        </h4>
-        <h5>사천왕</h5>
+        </h2>
+        <h3>사천왕</h3>
         <div className="trainer-grid">
           {E4_KEYS.flatMap((k, n) => {
             const list = waveSlot(official, k, i);
@@ -162,7 +163,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
             return byType(list).map((t) => card(t, `· ${n + 1}번째 (${wave}웨이브, 레벨 약 ${baseLevelForWave(wave)})${alt(list)}`));
           })}
         </div>
-        <h5>챔피언</h5>
+        <h3>챔피언</h3>
         <div className="trainer-grid">
           {byType(champs).map((t) => card(t, `· 190웨이브, 레벨 약 ${baseLevelForWave(190)}${alt(champs)}`))}
         </div>
@@ -227,7 +228,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
           </p>
           {gymByBiome.map(({ biome, leaders }) => (
             <div key={biome.id} className="trainer-group">
-              <h3>{biome.name}</h3>
+              <h2>{biome.name}</h2>
               <div className="trainer-grid">{leaders.map((t) => card(t))}</div>
             </div>
           ))}
