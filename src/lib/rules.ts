@@ -34,6 +34,19 @@ export function bestShinyTier(caughtAttr: bigint): 0 | 1 | 2 | 3 {
   return 1;
 }
 
+/**
+ * 도감에 등록된 이로치 단계 (비트 묶음: 1럭 1, 2럭 2, 3럭 4).
+ * 3럭을 잡으면 1럭도 등록된 것으로 치지만, 2럭은 따로 잡아야 등록된다.
+ */
+export function shinyTiersOf(caughtAttr: bigint): number {
+  if (!(caughtAttr & DexAttr.SHINY)) return 0;
+  let mask = 0;
+  if (caughtAttr & (DexAttr.DEFAULT_VARIANT | DexAttr.VARIANT_3)) mask |= 1;
+  if (caughtAttr & DexAttr.VARIANT_2) mask |= 2;
+  if (caughtAttr & DexAttr.VARIANT_3) mask |= 4;
+  return mask;
+}
+
 /** Nature enum 순서 (src/enums/nature.ts) */
 export const NATURE_NAMES = [
   "노력", "외로움", "용감", "고집", "개구쟁이",

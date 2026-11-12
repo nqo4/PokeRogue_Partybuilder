@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NATURE_EFFECT, bestShinyTier, starterCost, unlockedNatures } from "./rules";
+import { NATURE_EFFECT, bestShinyTier, shinyTiersOf, starterCost, unlockedNatures } from "./rules";
 
 describe("starterCost", () => {
   it("1보다 크면 감소 1회당 1씩 줄어든다", () => {
@@ -32,4 +32,13 @@ describe("natures", () => {
     expect(NATURE_EFFECT[13]).toEqual([5, 3]);
     expect(NATURE_EFFECT[0]).toBeNull();
   });
+});
+
+describe("shinyTiersOf", () => {
+  // 비트: 1 NON_SHINY, 2 SHINY, 16 1럭, 32 2럭, 64 3럭
+  it("이로치가 없으면 0", () => expect(shinyTiersOf(1n | 16n)).toBe(0));
+  it("1럭만", () => expect(shinyTiersOf(2n | 16n)).toBe(1));
+  it("3럭을 잡으면 1럭도 등록되지만 2럭은 아니다", () => expect(shinyTiersOf(2n | 64n)).toBe(1 | 4));
+  it("2럭은 따로 잡아야 한다", () => expect(shinyTiersOf(2n | 32n)).toBe(2));
+  it("모두", () => expect(shinyTiersOf(2n | 16n | 32n | 64n)).toBe(7));
 });

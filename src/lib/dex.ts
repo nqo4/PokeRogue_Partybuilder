@@ -31,6 +31,8 @@ export interface DexSpecies {
   final: boolean;
   /** 폼 종류: 0 기본, 1 메가, 2 신규 메가, 3 거다이맥스, 4 변형 */
   form: number;
+  /** 이로치 단계 수: 3 이면 1·2·3럭 모두, 1 이면 1럭만 있는 형태 */
+  variants: 1 | 3;
   gen: number;
   /** 기술 fid → 습득 방법 */
   moves: Record<string, LearnCode>;

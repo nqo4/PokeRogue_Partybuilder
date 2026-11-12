@@ -453,3 +453,17 @@ tr.current > td { background: var(--hover); }
 .map-node.active text { fill: #fff; }
 .map-node .map-start, .map-node.active .map-start { font-size: 22px; fill: #2e9e44; }
 .map-node:focus { outline: none; }
+
+/* ── 이로치 단계 (1럭 노랑 · 2럭 파랑 · 3럭 빨강) */
+.shiny-tiers { display: inline-flex; align-items: center; gap: 1px; vertical-align: middle; }
+.sparkle path { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.55; }
+.sparkle.owned path { stroke: none; opacity: 1; }
+.sparkle.tier-1.owned path { fill: #e0a800; }
+.sparkle.tier-2.owned path { fill: #2f7de1; }
+.sparkle.tier-3.owned path { fill: #e0393e; }
+@media (prefers-color-scheme: dark) {
+  .sparkle.tier-1.owned path { fill: #f5c542; }
+  .sparkle.tier-2.owned path { fill: #6fa8ff; }
+  .sparkle.tier-3.owned path { fill: #ff6b70; }
+}
+.modal-shiny { margin-left: 6px; }

@@ -4,6 +4,10 @@ import type { Dex, DexSpecies } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STAT_NAMES } from "./StarterModal";
+import { ShinyTiers } from "./ShinyTiers";
+
+/** 이 형태에서 잡을 수 있는 이로치 단계를 다 모았는가 */
+const shinyComplete = (mask: number, variants: 1 | 3) => (mask & (variants === 3 ? 7 : 1)) === (variants === 3 ? 7 : 1);
 
 type SortKey = "id" | "cost" | "maxBst" | "luck" | "ivTotal" | "classicWins";
 const SORTS: [SortKey, string][] = [
@@ -41,12 +45,13 @@ interface Props {
 
 type View = "list" | "grid";
 
-type ClearFilter = "all" | "cleared" | "uncleared" | "missingForm";
+type ClearFilter = "all" | "cleared" | "uncleared" | "missingForm" | "missingShiny";
 const CLEAR_FILTERS: [ClearFilter, string][] = [
   ["all", "전체"],
   ["cleared", "클래식 클리어"],
   ["uncleared", "클래식 미클리어"],
   ["missingForm", "못 잡은 형태 있음"],
+  ["missingShiny", "못 모은 이로치 단계 있음"],
 ];
 
 export function StarterTable({ starters, dex, onOpen }: Props) {
@@ -81,7 +86,8 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
         (clear === "all" ||
           (clear === "cleared" && s.classicWins > 0) ||
           (clear === "uncleared" && s.classicWins === 0) ||
-          (clear === "missingForm" && s.family.some((f) => s.formStatus[f.idx] !== "caught"))) &&
+          (clear === "missingForm" && s.family.some((f) => s.formStatus[f.idx] !== "caught")) ||
+          (clear === "missingShiny" && !shinyComplete(s.shinyTiers, s.dex.variants))) &&
         (!gen || s.gen === gen) &&
         // 단일 타입 챌린지처럼, 진화·폼 변화로 얻는 타입까지 포함해서 거른다
         (type < 0 || s.family.some((f) => f.types.includes(type))) &&
@@ -162,10 +168,8 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
               <Sprite species={s.dex} size={56} />
               <span className="tile-name">{s.name}</span>
               <span>{s.dex.types.map(typeBadge)}</span>
-              <span className="small muted">
-                코스트 {s.cost}
-                {s.luck > 0 && <b className={`luck-${s.luck}`}> · 럭 {s.luck}</b>}
-              </span>
+              <span className="small muted">코스트 {s.cost}</span>
+              <ShinyTiers mask={s.shinyTiers} variants={s.dex.variants} />
             </button>
           ))}
         </div>
@@ -187,7 +191,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
                 </th>
               ))}
               <th>알기술</th>
-              <th>럭</th>
+              <th>이로치</th>
               <th>클리어</th>
             </tr>
           </thead>
@@ -214,7 +218,9 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
                     </td>
                   ))}
                   <td className={s.eggMovesUnlocked < 4 ? "locked num" : "num"}>{s.eggMovesUnlocked}/4</td>
-                  <td className={`num luck-${s.luck}`}>{s.luck || ""}</td>
+                  <td>
+                    <ShinyTiers mask={s.shinyTiers} variants={s.dex.variants} size={15} />
+                  </td>
                   <td className="num">{s.classicWins}</td>
                 </tr>
             ))}

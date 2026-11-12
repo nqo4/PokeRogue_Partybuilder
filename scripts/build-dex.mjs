@@ -68,6 +68,8 @@ const species = D.items.map((it, i) => {
     family: it.fa,
     final: !!it.ev,
     form: it.fx ?? 0,
+    // 이로치 단계 수: 3 이면 1·2·3럭 모두 있음, 1 이면 1럭만 있음
+    variants: it.sh === 3 ? 3 : 1,
     gen: it.ge,
     moves,
   };

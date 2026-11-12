@@ -7,6 +7,7 @@ import { FORM_NAMES } from "../lib/dex";
 import { NATURE_NAMES } from "../lib/rules";
 import type { FormStatus, OwnedStarter } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
+import { ShinyTiers } from "./ShinyTiers";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { useOfficial } from "./OfficialContext";
 
@@ -20,12 +21,14 @@ interface Props {
   owned?: OwnedStarter;
   /** 형태별 도감 상태 (세이브가 없으면 없음) */
   status?: Record<number, FormStatus>;
+  /** 종(SpeciesId)별 보유 이로치 단계 (1럭 1, 2럭 2, 3럭 4) */
+  shiny?: Record<number, number>;
   onClose: () => void;
 }
 
 const stageOf = (f: DexSpecies) => `${f.starter ? "스타터" : f.final ? "최종" : "중간"} · ${FORM_NAMES[f.form] ?? "폼"}`;
 
-export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
+export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -84,7 +87,11 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
             <div>
               {species.types.map(typeBadge)}
               <span className={`atk-kind ${atk >= spa ? "phys" : "spec"}`}>{atk >= spa ? "물리형" : "특수형"}</span>
-              {owned && owned.luck > 0 && <span className={`luck luck-${owned.luck}`}>럭 {owned.luck}</span>}
+              {shiny && myStatus === "caught" && (
+                <span className="modal-shiny">
+                  <ShinyTiers mask={shiny[species.id] ?? 0} variants={species.variants} size={16} />
+                </span>
+              )}
             </div>
             {owned ? (
               <div className="small muted">
@@ -225,6 +232,7 @@ export function SpeciesModal({ species, dex, owned, status, onClose }: Props) {
                             </span>
                             <span className="dim-target">{f.name}</span>
                             {st && st !== "caught" && <span className="status-tag">{STATUS_LABEL[st]}</span>}
+                            {st === "caught" && shiny && <ShinyTiers mask={shiny[f.id] ?? 0} variants={f.variants} />}
                           </span>
                         </td>
                         <td className="dim-target">

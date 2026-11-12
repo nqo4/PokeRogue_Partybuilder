@@ -5,6 +5,7 @@ import {
   AbilityAttr,
   PassiveAttr,
   bestShinyTier,
+  shinyTiersOf,
   popcount,
   starterCost,
   unlockedNatures,
@@ -37,6 +38,8 @@ export interface OwnedStarter {
   eggMovesUnlocked: number;
   /** 보유한 최고 이로치 티어 = 이 포켓몬이 줄 수 있는 럭 */
   luck: 0 | 1 | 2 | 3;
+  /** 도감에 등록된 이로치 단계 (1럭 1, 2럭 2, 3럭 4) */
+  shinyTiers: number;
   /** 스타터 개체치. 진화형·메가·거다이 폼도 이 값을 그대로 물려받는다 */
   ivs: number[];
   ivTotal: number;
@@ -75,6 +78,8 @@ export interface SaveSummary {
   unmatched: string[];
   /** 도감의 모든 형태(Dex idx)의 상태 */
   speciesStatus: Record<number, FormStatus>;
+  /** 종(SpeciesId)별로 도감에 등록된 이로치 단계 (1럭 1, 2럭 2, 3럭 4). 세이브는 폼이 아니라 종 단위로 저장한다 */
+  shinyById: Record<number, number>;
 }
 
 /** 이 형태를 소유한 스타터 (기본 형태가 정확히 일치하는 스타터를 우선, 없으면 같은 계열) */
@@ -137,6 +142,7 @@ export function buildSummary(save: RawSave, dex: Dex): SaveSummary {
       eggMoves,
       eggMovesUnlocked: popcount(entry.$em & 0b1111),
       luck: bestShinyTier(caught),
+      shinyTiers: shinyTiersOf(caught),
       ivs,
       ivTotal: ivs.reduce((a, b) => a + b, 0),
       natures: unlockedNatures(dexEntry.$na ?? 0),
@@ -158,5 +164,8 @@ export function buildSummary(save: RawSave, dex: Dex): SaveSummary {
     starters,
     unmatched,
     speciesStatus: Object.fromEntries(dex.species.map((f) => [f.idx, formStatusOf(save, dex, f)])),
+    shinyById: Object.fromEntries(
+      Object.entries(save.dexData).map(([id, e]) => [Number(id), shinyTiersOf(BigInt(String(e.$ca ?? 0)))]),
+    ),
   };
 }

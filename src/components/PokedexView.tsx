@@ -5,6 +5,7 @@ import type { Dex } from "../lib/dex";
 import type { FormStatus } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STATUS_LABEL } from "./StarterModal";
+import { ShinyTiers } from "./ShinyTiers";
 
 type FormFilter = "all" | "base" | "mega" | "gmax" | "other";
 const FORM_FILTERS: [FormFilter, string][] = [
@@ -14,15 +15,22 @@ const FORM_FILTERS: [FormFilter, string][] = [
   ["gmax", "거다이맥스"],
   ["other", "기타 폼"],
 ];
-type StatusFilter = "all" | FormStatus;
+type StatusFilter = "all" | FormStatus | "missingShiny";
 
 interface Props {
   dex: Dex;
   status?: Record<number, FormStatus>;
+  /** 종(SpeciesId)별 보유 이로치 단계 (1럭 1, 2럭 2, 3럭 4) */
+  shiny?: Record<number, number>;
   onOpen: (idx: number) => void;
 }
 
-export function PokedexView({ dex, status, onOpen }: Props) {
+export function PokedexView({ dex, status, shiny, onOpen }: Props) {
+  /** 잡은 형태인데 이로치 단계를 덜 모았는가 */
+  const missingShiny = (s: (typeof dex.species)[number]) => {
+    const need = s.variants === 3 ? 7 : 1;
+    return status?.[s.idx] === "caught" && ((shiny?.[s.id] ?? 0) & need) !== need;
+  };
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
   const [form, setForm] = useState<FormFilter>("all");
@@ -42,11 +50,11 @@ export function PokedexView({ dex, status, onOpen }: Props) {
             (form === "mega" && (s.form === 1 || s.form === 2)) ||
             (form === "gmax" && s.form === 3) ||
             (form === "other" && s.form === 4)) &&
-          (st === "all" || !status || status[s.idx] === st) &&
+          (st === "all" || !status || (st === "missingShiny" ? missingShiny(s) : status[s.idx] === st)) &&
           (!q || (num != null ? nationalDex(s.id) === num : s.name.includes(q))),
       )
       .sort((a, b) => nationalDex(a.id) - nationalDex(b.id) || a.idx - b.idx);
-  }, [dex, status, gen, type, form, st, query]);
+  }, [dex, status, shiny, gen, type, form, st, query]);
 
   const counts = useMemo(() => {
     if (!status) return null;
@@ -87,6 +95,7 @@ export function PokedexView({ dex, status, onOpen }: Props) {
             <option value="caught">잡음</option>
             <option value="seen">발견만</option>
             <option value="unseen">미발견</option>
+            <option value="missingShiny">잡았지만 이로치 단계 덜 모음</option>
           </select>
         )}
         <input placeholder="이름 또는 도감 번호" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -114,6 +123,7 @@ export function PokedexView({ dex, status, onOpen }: Props) {
                 ))}
               </span>
               {ss && ss !== "caught" && <span className="small muted">{STATUS_LABEL[ss]}</span>}
+              {ss === "caught" && shiny && <ShinyTiers mask={shiny[s.id] ?? 0} variants={s.variants} />}
             </button>
           );
         })}

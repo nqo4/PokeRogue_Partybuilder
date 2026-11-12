@@ -170,7 +170,7 @@ export default function App() {
                 </>
               )}
               <div hidden={page !== "dex"}>
-                <PokedexView dex={dex} status={summary?.speciesStatus} onOpen={(idx) => go({ detail: idx })} />
+                <PokedexView dex={dex} status={summary?.speciesStatus} shiny={summary?.shinyById} onOpen={(idx) => go({ detail: idx })} />
               </div>
               <div hidden={page !== "trainers"}>
                 <TrainersView dex={dex} />
@@ -188,6 +188,7 @@ export default function App() {
                   dex={dex}
                   owned={summary ? ownerOf(summary.starters, detail) : undefined}
                   status={summary?.speciesStatus}
+                  shiny={summary?.shinyById}
                   onClose={closeDetail}
                 />
               )}
