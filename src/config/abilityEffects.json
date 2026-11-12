@@ -1,0 +1,30 @@
+{
+  "_설명": "방어 계산에 쓰는 특성 효과. 이름은 Dex 한국어 특성명과 같아야 한다 (src/config/config.test.ts 가 확인). multiplier: 받는 데미지 배율 (0 = 무효). superEffective: 효과가 굉장한 기술에만 곱하는 배율. onlySuperEffective: 효과가 굉장한 기술 외에는 무효. notes: 타입 계산에 넣지 않고 설명으로만 보여주는 효과.",
+  "abilities": {
+    "부유": { "multiplier": { "땅": 0 } },
+    "흙먹기": { "multiplier": { "땅": 0 } },
+    "피뢰침": { "multiplier": { "전기": 0 } },
+    "축전": { "multiplier": { "전기": 0 } },
+    "전기엔진": { "multiplier": { "전기": 0 } },
+    "저수": { "multiplier": { "물": 0 } },
+    "마중물": { "multiplier": { "물": 0 } },
+    "건조피부": { "multiplier": { "물": 0, "불꽃": 1.25 } },
+    "타오르는불꽃": { "multiplier": { "불꽃": 0 } },
+    "초식": { "multiplier": { "풀": 0 } },
+    "두꺼운지방": { "multiplier": { "불꽃": 0.5, "얼음": 0.5 } },
+    "내열": { "multiplier": { "불꽃": 0.5 } },
+    "수포": { "multiplier": { "불꽃": 0.5 } },
+    "정화의소금": { "multiplier": { "고스트": 0.5 } },
+    "복슬복슬": { "multiplier": { "불꽃": 2 }, "notes": ["접촉 기술 데미지 반감"] },
+    "필터": { "superEffective": 0.75 },
+    "하드록": { "superEffective": 0.75 },
+    "프리즘아머": { "superEffective": 0.75 },
+    "불가사의부적": { "onlySuperEffective": true },
+    "멀티스케일": { "notes": ["HP가 가득일 때 받는 데미지 반감"] },
+    "스펙터가드": { "notes": ["HP가 가득일 때 받는 데미지 반감"] },
+    "여왕의위엄": { "notes": ["상대 선공기 무효"] },
+    "비비드바디": { "notes": ["상대 선공기 무효"] },
+    "방탄": { "notes": ["구슬·폭탄 기술 무효"] },
+    "옹골참": { "notes": ["HP가 가득일 때 일격에 쓰러지지 않음"] }
+  }
+}

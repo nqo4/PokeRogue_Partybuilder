@@ -1,0 +1,15 @@
+node_modules/
+dist/
+vendor/
+*.log
+
+# 세이브 파일은 개인 데이터이므로 절대 커밋하지 않는다.
+*.prsv
+save*.json
+testdata/
+
+# 참고 자료 (다른 사람이 만든 문서라 올리지 않는다)
+*.pdf
+# 로컬 개발 도구 설정
+.claude/
+.vercel/
