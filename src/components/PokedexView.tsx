@@ -6,10 +6,7 @@ import type { FormStatus } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STATUS_LABEL } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
-import { useOfficial } from "./OfficialContext";
 import { SearchInput } from "./SearchInput";
-import { howToGet } from "../lib/obtain";
-import { ItemIcon } from "./ItemIcon";
 
 type FormFilter = "all" | "base" | "mega" | "gmax" | "other";
 const FORM_FILTERS: [FormFilter, string][] = [
@@ -30,8 +27,6 @@ interface Props {
 }
 
 export function PokedexView({ dex, status, shiny, onOpen }: Props) {
-  const official = useOfficial();
-  /** 이 형태를 얻는 방법(진화·폼 변화)은 howToGet 이 만든다 */
 
   /** 잡은 형태인데 이로치 단계를 덜 모았는가 */
   const missingShiny = (s: (typeof dex.species)[number]) => {
@@ -118,24 +113,15 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
         {rows.map((s) => {
           const ss = status?.[s.idx];
           return (
-            <button key={s.idx} className={`tile${ss && ss !== "caught" ? ` dim-${ss}` : ""}`} onClick={() => onOpen(s.idx)}>
+            <button
+              key={s.idx}
+              className={`tile${ss && ss !== "caught" ? ` dim-${ss}` : ""}`}
+              onClick={() => onOpen(s.idx)}
+              title={ss && ss !== "caught" ? `${s.name} · ${STATUS_LABEL[ss]}` : undefined}
+            >
               <span className="small muted">No.{String(nationalDex(s.id)).padStart(4, "0")}</span>
               <Sprite species={s} size={56} />
               <span className="tile-name">{s.name}</span>
-              {(() => {
-                const how = howToGet(s, dex, official);
-                if (!how.length) return null;
-                const text = how.map((h) => h.text).join(" / ");
-                const items = [...new Set(how.flatMap((h) => h.items))];
-                return (
-                  <span className="tile-evo" title={text}>
-                    {items.map((it) => (
-                      <ItemIcon key={it} item={it} size={20} />
-                    ))}
-                    <span className="tile-evo-text">{text}</span>
-                  </span>
-                );
-              })()}
               <span>
                 {s.types.map((t) => (
                   <span key={t} className="type" style={typeStyle(dex.data.typeColors[t])}>

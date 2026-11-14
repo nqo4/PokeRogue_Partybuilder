@@ -396,9 +396,11 @@ function MemberCard({
             {build.moveset.length ? (
               <ol className="moveset">
                 {build.moveset.map((p) => (
-                  <li key={p.fid}>
+                  <li key={p.fid} className={o.eggMoves[3]?.fid === p.fid && o.eggMoves[3].unlocked ? "rare-egg" : undefined}>
                     <MoveLabel fid={p.fid} />
-                    {o.eggMoves.some((e) => e.fid === p.fid) && <span className="egg-tag">알기술</span>}
+                    {o.eggMoves.some((e) => e.fid === p.fid) && (
+                      <span className="egg-tag">{o.eggMoves[3]?.fid === p.fid ? "레어 알기술" : "알기술"}</span>
+                    )}
                     <span className="build-why">{p.why}</span>
                   </li>
                 ))}

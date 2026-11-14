@@ -501,7 +501,7 @@ tr.current > td { background: var(--hover); }
 .nature-grid .corner .down { position: absolute; right: 3px; top: 2px; }
 
 /* 숨겨진 특성은 노란색으로 */
-.hidden-ability .info-link, .hidden-ability-name { color: var(--c-gold); font-weight: 600; }
+.hidden-ability .info-link, .hidden-ability-name, .rare-egg .info-link { color: var(--c-gold); font-weight: 600; }
 /* 성격표 머리 색: 상승(행)은 게임의 능력치 상승 색, 하강(열)은 하강 색. 밝은 화면은 같은 색 계열의 진한 쪽 */
 .nature-grid { --nat-up: #984038; --nat-down: #006090; }
 @media (prefers-color-scheme: dark) { .nature-grid { --nat-up: #f89890; --nat-down: #40c8f8; } }
@@ -527,13 +527,6 @@ tr.current > td { background: var(--hover); }
   .stat-bar { grid-template-columns: 1fr auto; }
   .stat-bar-track { grid-column: 1 / -1; grid-row: 2; }
 }
-/* 도감 타일의 진화 조건: 두 줄까지만, 전체 문장은 마우스를 올리면 보인다 */
-.tile-evo { display: flex; align-items: center; justify-content: center; gap: 2px; max-width: 100%; }
-.tile-evo-text {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  font-size: 0.75rem; line-height: 1.35; color: var(--muted); text-align: center; word-break: keep-all;
-}
-
 /* 검색창 지우기 버튼 */
 .search-input { position: relative; display: inline-flex; align-items: center; }
 .search-input input { padding-right: 28px !important; }

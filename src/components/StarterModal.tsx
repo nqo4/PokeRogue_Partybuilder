@@ -161,7 +161,11 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
               {species.eggMoves.map((fid, i) => {
                 const unlocked = owned?.eggMoves[i]?.unlocked;
                 return (
-                  <li key={`${fid}-${i}`} className={owned && !unlocked ? "locked" : ""}>
+                  <li
+                    key={`${fid}-${i}`}
+                    className={owned && !unlocked ? "locked" : i === 3 && unlocked ? "rare-egg" : ""}
+                    title={i === 3 && unlocked ? "획득한 레어 알기술" : undefined}
+                  >
                     <MoveLabel fid={fid} />
                     {i === 3 && " (레어)"}
                     {owned && !unlocked && " — 미해금"}
