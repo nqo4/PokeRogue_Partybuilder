@@ -456,7 +456,7 @@ tr.current > td { background: var(--hover); }
 
 /* ── 이로치 단계 (1럭 노랑 · 2럭 파랑 · 3럭 빨강) */
 .shiny-tiers { display: inline-flex; align-items: center; gap: 1px; vertical-align: middle; }
-.sparkle path { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.55; }
+.sparkle path { fill: none; stroke: var(--muted); stroke-width: 1.1; opacity: 0.55; vector-effect: non-scaling-stroke; }
 .sparkle.owned path { stroke: none; opacity: 1; }
 .sparkle.tier-1.owned path { fill: #e0a800; }
 .sparkle.tier-2.owned path { fill: #2f7de1; }
@@ -486,3 +486,19 @@ tr.current > td { background: var(--hover); }
 .strip-position.unfit { color: var(--muted); font-weight: 600; border: 1px dashed var(--border); background: none; }
 .role.assigned { outline: 2px solid currentColor; outline-offset: -2px; }
 .egg-tag { margin-left: 4px; padding: 0 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: var(--c-teal); border: 1px solid currentColor; }
+
+/* ── 성격 바둑판 (행 상승 · 열 하강) */
+.nature-grid { border-collapse: separate; border-spacing: 3px; font-size: 0.85rem; width: 100%; max-width: 560px; table-layout: fixed; }
+.nature-grid th { font-weight: 600; color: var(--muted); padding: 3px 2px; }
+.nature-grid thead th { background: var(--hover); border-radius: 4px; }
+.nature-grid tbody th { background: var(--hover); border-radius: 4px; text-align: center; }
+.nature-grid td { padding: 5px 2px; text-align: center; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nature-grid td.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--text); font-weight: 700; }
+.nature-grid td.off { color: var(--muted); opacity: 0.45; }
+.nature-grid td.neutral { font-style: italic; }
+.nature-grid .corner { position: relative; height: 2.2em; background: none !important; font-size: 0.7rem; }
+.nature-grid .corner .up { position: absolute; left: 3px; bottom: 2px; }
+.nature-grid .corner .down { position: absolute; right: 3px; top: 2px; }
+
+/* 숨겨진 특성은 노란색으로 */
+.hidden-ability .info-link, .hidden-ability-name { color: var(--c-gold); font-weight: 600; }

@@ -362,7 +362,12 @@ function MemberCard({
         <dl className="build-list">
           <dt>특성</dt>
           <dd>
-            <InfoLink fid={m.ability.fid} />
+            <span
+              className={m.ability.slot === "숨겨진 특성" ? "hidden-ability" : undefined}
+              title={m.ability.slot === "숨겨진 특성" ? "숨겨진 특성" : undefined}
+            >
+              <InfoLink fid={m.ability.fid} />
+            </span>
             {m.passive.active && (
               <>
                 {" + "}

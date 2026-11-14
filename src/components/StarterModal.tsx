@@ -123,7 +123,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
             <ul>
               {slots.map(([label, fid, unlocked], i) =>
                 fid == null ? null : (
-                  <li key={i} className={owned && !unlocked ? "locked" : ""}>
+                  <li key={i} className={`${owned && !unlocked ? "locked" : ""}${label ? " hidden-ability" : ""}`}>
                     <InfoLink fid={fid} />
                     {label && ` (${label})`}
                     {owned && !unlocked && " — 미해금"}
@@ -194,11 +194,15 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
                     </tr>
                   </tbody>
                 </table>
-                <h3>해금 성격 {owned.natures.length}/25</h3>
-                <p className="small">{owned.natures.map((n) => NATURE_NAMES[n]).join(", ")}</p>
               </>
             )}
           </div>
+          {owned && (
+            <div className="wide">
+              <h3>해금 성격 {owned.natures.length}/25</h3>
+              <NatureGrid unlocked={owned.natures} />
+            </div>
+          )}
           <div className="wide">
             <h3>
               진화 계열 ({dex.familyName(species.family)}){" "}
@@ -261,5 +265,51 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
         </div>
       </div>
     </div>
+  );
+}
+
+/** 성격표 표시 순서: 공격, 방어, 특공, 특방, 스피드 */
+const NATURE_AXIS = ["공격", "방어", "특공", "특방", "스피드"] as const;
+/** 게임의 성격 번호는 (올리는 능력치 × 5 + 내리는 능력치)이고 순서가 공격·방어·스피드·특공·특방이라, 표시 순서를 그 칸 번호로 바꾼다 */
+const AXIS_TO_GAME = [0, 1, 3, 4, 2] as const;
+
+/** 해금 성격 바둑판: 행 = 올리는 능력치, 열 = 내리는 능력치. 대각선은 무보정 성격 */
+function NatureGrid({ unlocked }: { unlocked: number[] }) {
+  const has = new Set(unlocked);
+  return (
+    <table className="nature-grid">
+      <thead>
+        <tr>
+          <th className="corner">
+            <span className="up">상승</span>
+            <span className="down">하강</span>
+          </th>
+          {NATURE_AXIS.map((s) => (
+            <th key={s} scope="col">
+              {s}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {NATURE_AXIS.map((up, r) => (
+          <tr key={up}>
+            <th scope="row">{up}</th>
+            {NATURE_AXIS.map((down, c) => {
+              const n = AXIS_TO_GAME[r] * 5 + AXIS_TO_GAME[c];
+              return (
+                <td
+                  key={down}
+                  className={`${has.has(n) ? "on" : "off"}${r === c ? " neutral" : ""}`}
+                  title={`${NATURE_NAMES[n]} — ${r === c ? "무보정" : `${up}↑ ${down}↓`} · ${has.has(n) ? "해금" : "미해금"}`}
+                >
+                  {NATURE_NAMES[n]}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
