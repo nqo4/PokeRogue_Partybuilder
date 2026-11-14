@@ -1,7 +1,7 @@
 // 포켓몬 도감: 진화형·메가·거다이맥스·폼까지 모든 형태. 세이브가 있으면 못 잡은 형태를 어둡게 흐리게 보여준다.
 import { useMemo, useState } from "react";
 import { typeStyle } from "../lib/color";
-import type { Dex } from "../lib/dex";
+import { typesInGameOrder, type Dex } from "../lib/dex";
 import type { FormStatus } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STATUS_LABEL } from "./StarterModal";
@@ -78,7 +78,7 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
         </select>
         <select value={type} onChange={(e) => setType(Number(e.target.value))}>
           <option value={-1}>전체 타입</option>
-          {Array.from({ length: dex.data.ranges.type[1] }, (_, t) => (
+          {typesInGameOrder(dex).map((t) => (
             <option key={t} value={t}>
               {dex.name(t)}
             </option>

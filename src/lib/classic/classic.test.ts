@@ -8,6 +8,7 @@ import { buildTypeMatrix, typeMultiplier } from "../typeChart";
 import { CandidateBuilder } from "./candidate";
 import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange } from "./recommend";
+import { findings } from "./check";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
@@ -127,6 +128,19 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
       }
       if (a.members.length === 6) expect(new Set(a.positions.filter(Boolean)).size).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it("내 파티 점검: 공격 역할이 없으면 보완 필요, 빈 자리와 남은 코스트를 알려 준다", () => {
+    // 막이·서포터만 맡을 수 있는 포켓몬 2마리 (공격 역할 점수가 낮은 것)
+    const nonAttackers = rec.candidates
+      .filter((c) => Math.max(c.roles.fast.score, c.roles.sweeper.score) < 0.5 && c.owned.cost <= 3)
+      .slice(0, 2);
+    const a = rec.analyze(nonAttackers);
+    const f = findings(a, 10, dex);
+    expect(a.hasAttacker).toBe(false);
+    expect(f.some((x) => x.level === "warn" && x.text.includes("선공형이나 스위퍼가 없음"))).toBe(true);
+    expect(f.some((x) => x.text.includes(`빈 자리 4칸, 코스트 ${10 - a.cost} 남음`))).toBe(true);
+    expect(f.some((x) => x.level === "ok")).toBe(false);
   });
 
   it("지정한 포켓몬을 반드시 포함한다", () => {

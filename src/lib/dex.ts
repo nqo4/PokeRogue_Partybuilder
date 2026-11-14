@@ -109,6 +109,19 @@ export const TAG = {
   NOT_IMPLEMENTED: 74,
 } as const;
 
+/** 게임의 타입 순서 (스타터 선택 화면의 타입 필터와 같다) */
+const GAME_TYPE_ORDER = ["노말", "격투", "비행", "독", "땅", "바위", "벌레", "고스트", "강철", "불꽃", "물", "풀", "전기", "에스퍼", "얼음", "드래곤", "악", "페어리"];
+
+/** 타입 fid 들을 게임 순서로 (Dex 의 fid 순서는 게임 순서와 다르다) */
+export function typesInGameOrder(dex: Dex): number[] {
+  const all = Array.from({ length: dex.data.ranges.type[1] }, (_, t) => t);
+  const rank = (t: number) => {
+    const i = GAME_TYPE_ORDER.indexOf(dex.name(t));
+    return i < 0 ? 99 : i;
+  };
+  return all.sort((a, b) => rank(a) - rank(b));
+}
+
 export const FORM_NAMES = ["기본", "메가", "신규 메가", "거다이맥스", "변형"] as const;
 
 export class Dex {

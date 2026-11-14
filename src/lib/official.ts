@@ -131,6 +131,10 @@ export interface OfficialData {
   itemAtlas?: { w: number; h: number } | null;
   /** 스타터 사탕 색 [바탕, 덧그림] (SpeciesId 문자열 → 16진 색) */
   starterColors?: Record<string, [string, string]>;
+  /** 게임의 전체 스타터 목록 (getAllStarters 순서 그대로). 포켓러스 계산에 쓴다 */
+  starterIds?: number[];
+  /** 검증용: 게임 코드로 뽑은 날짜별 포켓러스 */
+  pokerusSamples?: { date: string; ids: number[] }[];
   biomes: Biome[];
   trainers: Trainer[];
   fixedWaves: FixedWave[];
@@ -165,10 +169,11 @@ export const TIER_NAMES: Record<PoolTier, string> = {
 export const TIME_NAMES: Record<string, string> = { ALL: "", DAWN: "새벽", DAY: "낮", DUSK: "황혼", NIGHT: "밤" };
 
 /** 게임의 영어 타입 키 → Dex 한국어 타입 이름 */
+// 순서 = 게임의 타입 순서 (필터·목록에 이 순서대로 나온다)
 export const TYPE_KEY_KO: Record<string, string> = {
-  NORMAL: "노말", FIRE: "불꽃", WATER: "물", ELECTRIC: "전기", GRASS: "풀", ICE: "얼음", FIGHTING: "격투",
-  POISON: "독", GROUND: "땅", FLYING: "비행", PSYCHIC: "에스퍼", BUG: "벌레", ROCK: "바위", GHOST: "고스트",
-  DRAGON: "드래곤", DARK: "악", STEEL: "강철", FAIRY: "페어리",
+  NORMAL: "노말", FIGHTING: "격투", FLYING: "비행", POISON: "독", GROUND: "땅", ROCK: "바위",
+  BUG: "벌레", GHOST: "고스트", STEEL: "강철", FIRE: "불꽃", WATER: "물", GRASS: "풀",
+  ELECTRIC: "전기", PSYCHIC: "에스퍼", ICE: "얼음", DRAGON: "드래곤", DARK: "악", FAIRY: "페어리",
 };
 
 /** 클래식 웨이브의 기준 레벨 (Battle.getLevelForWave 의 기본식. 실제로는 ±오차와 트레이너별 보정이 있다) */

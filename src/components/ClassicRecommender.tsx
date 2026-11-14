@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { typeStyle } from "../lib/color";
-import type { Dex } from "../lib/dex";
+import { typesInGameOrder, type Dex } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { ROLES, ROLE_NAMES, type Candidate, type Reason } from "../lib/classic/candidate";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "../lib/classic/recommend";
@@ -10,6 +10,7 @@ import { RouteSection } from "./RouteSection";
 import type { FormStatus } from "../lib/starters";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { CostValue } from "./CostValue";
+import { PartyChecker } from "./PartyChecker";
 
 interface Props {
   starters: OwnedStarter[];
@@ -31,6 +32,8 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
   const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 추천 받기 / 내 파티 점검 */
+  const [mode, setMode] = useState<"recommend" | "check">("recommend");
 
   const recommender = useMemo(() => {
     try {
@@ -75,8 +78,27 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
     </span>
   );
 
+  const modeTabs = (
+    <div className="filters">
+      <span className="view-toggle" role="group" aria-label="파티 추천 방식" style={{ marginLeft: 0 }}>
+        <button className={mode === "recommend" ? "active" : ""} aria-pressed={mode === "recommend"} onClick={() => setMode("recommend")}>
+          추천 받기
+        </button>
+        <button className={mode === "check" ? "active" : ""} aria-pressed={mode === "check"} onClick={() => setMode("check")}>
+          내 파티 점검
+        </button>
+      </span>
+    </div>
+  );
+
   return (
     <section>
+      {modeTabs}
+      {/* 두 화면을 모두 그려 두고 숨기기만 해서, 오가도 고른 파티·추천 결과가 남는다 */}
+      <div hidden={mode !== "check"}>
+        {recommender && <PartyChecker recommender={recommender} dex={dex} status={status} typeBadge={typeBadge} />}
+      </div>
+      <div hidden={mode !== "recommend"}>
       <div className="filters">
         <label>
           <input
@@ -143,18 +165,22 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
       {results?.map((r, i) => (
         <PartyCard key={r.key} index={i} rec={r} dex={dex} status={status} typeBadge={typeBadge} />
       ))}
+      </div>
     </section>
   );
 }
 
-function PartyCard({
+export function PartyCard({
   index,
+  title,
   rec,
   dex,
   status,
   typeBadge,
 }: {
   index: number;
+  /** 머리 제목 (없으면 "추천 n") */
+  title?: string;
   rec: PartyRecommendation;
   dex: Dex;
   status?: Record<number, FormStatus>;
@@ -177,7 +203,7 @@ function PartyCard({
   return (
     <article className="party" aria-labelledby={`party-${rec.key}-title`}>
       <header className="party-head">
-        <h2 id={`party-${rec.key}-title`}>추천 {index + 1}</h2>
+        <h2 id={`party-${rec.key}-title`}>{title ?? `추천 ${index + 1}`}</h2>
         <span className="party-meta">
           코스트 <b>{a.cost}</b>/10 · {a.members.length}마리 · 럭 합계 {a.luck}
           {forms > 0 && ` · 폼 변화 ${forms}마리`}
@@ -463,7 +489,7 @@ function TypeTable({ a, dex, typeBadge }: { a: PartyAnalysis; dex: Dex; typeBadg
             </tr>
           </thead>
           <tbody>
-            {a.typeTable.map((row) => (
+            {typesInGameOrder(dex).map((t) => a.typeTable[t]).map((row) => (
               <tr key={row.type} className={row.weak >= 2 && row.weak > row.resist ? "danger" : ""}>
                 <td>{typeBadge(row.type)}</td>
                 {row.multipliers.map((x, i) => {

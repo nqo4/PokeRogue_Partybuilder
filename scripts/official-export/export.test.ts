@@ -24,7 +24,8 @@ import { initBiomes } from "#init/init-biomes";
 import { trainerConfigs } from "#trainers/trainer-config";
 import { toCamelCase } from "#utils/strings";
 import i18next from "i18next";
-import { test } from "vitest";
+import { test, vi } from "vitest";
+import { getPokerusStarters } from "#utils/pokemon-utils";
 import { getEvoConditionDescription } from "../game-data-exporter/data-generators/evolution-texts";
 import { EvolutionItem } from "#balance/pokemon-evolutions";
 import {
@@ -218,6 +219,24 @@ test("export party builder data", async () => {
     console.warn(`아이템 스프라이트 시트를 찾지 못했습니다 (${atlasPath}). 아이템 그림 없이 진행합니다.`);
   }
 
+  // ── 포켓러스: 전체 스타터 목록(게임 순서 그대로)과, 검증용으로 몇몇 날짜의 실제 결과
+  const starterIds = speciesDataRegistry.getAllStarters() as number[];
+  const pokerusSamples: { date: string; ids: number[] }[] = [];
+  try {
+    // 추출 환경에서는 게임이 Phaser 난수 생성기를 만들지 않으므로 하나 만들어 둔다
+    const P = (globalThis as unknown as { Phaser: { Math: { RND: unknown; RandomDataGenerator: new () => unknown } } }).Phaser;
+    if (!P.Math.RND) P.Math.RND = new P.Math.RandomDataGenerator();
+    for (const date of ["2024-06-01", "2025-01-01", "2026-11-15", "2026-12-31"]) {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(`${date}T12:00:00Z`));
+      pokerusSamples.push({ date, ids: getPokerusStarters() as number[] });
+      vi.useRealTimers();
+    }
+  } catch (e) {
+    vi.useRealTimers();
+    console.warn("포켓러스 표본을 만들지 못했습니다:", e);
+  }
+
   const src = readFileSync(join(ROOT, "src/data/trainers/trainer-config.ts"), "utf8");
   const fixedSrc = readFileSync(join(ROOT, "src/data/trainers/fixed-battle-configs.ts"), "utf8");
   /** trainer-config.ts 안에서 한 트레이너의 설정 부분 */
@@ -388,6 +407,8 @@ test("export party builder data", async () => {
       itemSprites,
       itemAtlas,
       starterColors,
+      starterIds,
+      pokerusSamples,
       biomes,
       trainers,
       fixedWaves,

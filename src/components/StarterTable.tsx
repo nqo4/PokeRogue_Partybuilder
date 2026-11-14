@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { typeStyle } from "../lib/color";
-import type { Dex, DexSpecies } from "../lib/dex";
+import { typesInGameOrder, type Dex, type DexSpecies } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STAT_NAMES } from "./StarterModal";
@@ -80,7 +80,6 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
     }
   };
 
-  const typeCount = dex.data.ranges.type[1];
   const rows = useMemo(() => {
     const q = query.trim();
     const list = starters.filter(
@@ -127,7 +126,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
         </select>
         <select value={type} onChange={(e) => setType(Number(e.target.value))}>
           <option value={-1}>전체 타입</option>
-          {Array.from({ length: typeCount }, (_, t) => (
+          {typesInGameOrder(dex).map((t) => (
             <option key={t} value={t}>
               {dex.name(t)} (진화·폼 포함)
             </option>
