@@ -17,12 +17,14 @@ interface Props {
   /** 형태별 도감 상태 (경로 추천에서 못 잡은 포켓몬 계산용) */
   status?: Record<number, FormStatus>;
   dex: Dex;
+  /** 보여줄 화면: 파티 추천 / 내 파티 점검 (둘이 같은 추천기를 쓴다) */
+  mode: "recommend" | "check";
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
 const FORM_LIMITS = [0, 1, 2, 3, 4, 5, 6];
 
-export function ClassicRecommenderView({ starters, dex, status }: Props) {
+export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
   const [onlyUncleared, setOnlyUncleared] = useState(true);
   const [partySize, setPartySize] = useState(6);
   const [maxFormChange, setMaxFormChange] = useState(6);
@@ -32,8 +34,6 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
   const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** 추천 받기 / 내 파티 점검 */
-  const [mode, setMode] = useState<"recommend" | "check">("recommend");
 
   const recommender = useMemo(() => {
     try {
@@ -78,22 +78,8 @@ export function ClassicRecommenderView({ starters, dex, status }: Props) {
     </span>
   );
 
-  const modeTabs = (
-    <div className="filters">
-      <span className="view-toggle" role="group" aria-label="파티 추천 방식" style={{ marginLeft: 0 }}>
-        <button className={mode === "recommend" ? "active" : ""} aria-pressed={mode === "recommend"} onClick={() => setMode("recommend")}>
-          추천 받기
-        </button>
-        <button className={mode === "check" ? "active" : ""} aria-pressed={mode === "check"} onClick={() => setMode("check")}>
-          내 파티 점검
-        </button>
-      </span>
-    </div>
-  );
-
   return (
     <section>
-      {modeTabs}
       {/* 두 화면을 모두 그려 두고 숨기기만 해서, 오가도 고른 파티·추천 결과가 남는다 */}
       <div hidden={mode !== "check"}>
         {recommender && <PartyChecker recommender={recommender} dex={dex} status={status} typeBadge={typeBadge} />}

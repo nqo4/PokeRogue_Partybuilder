@@ -1,7 +1,7 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
 import type { ReactNode } from "react";
 
-export type Page = "recommend" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
+export type Page = "recommend" | "check" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -12,6 +12,14 @@ const svg = (d: ReactNode) => (
 const ICONS: Record<Page, ReactNode> = {
   // 별(추천)
   recommend: svg(<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />),
+  // 체크 표시가 있는 클립보드(점검)
+  check: svg(
+    <>
+      <path d="M9 4h6v3H9z" />
+      <path d="M9 5H6v16h12V5h-3" />
+      <path d="M9 14l2 2 4-4" />
+    </>,
+  ),
   // 몬스터볼
   dex: svg(
     <>
@@ -62,7 +70,12 @@ interface Item {
   soon?: boolean;
 }
 const GROUPS: { title?: string; items: Item[] }[] = [
-  { items: [{ page: "recommend", label: "파티 추천" }] },
+  {
+    items: [
+      { page: "recommend", label: "파티 추천" },
+      { page: "check", label: "내 파티 점검" },
+    ],
+  },
   {
     title: "도감",
     items: [

@@ -21,6 +21,7 @@ import { fetchOfficial, type Official } from "./lib/official";
 
 const TITLES: Record<Page, string> = {
   recommend: "클래식 파티 추천",
+  check: "내 파티 점검",
   dex: "포켓몬 도감",
   trainers: "트레이너 도감",
   biomes: "바이옴 안내",
@@ -29,7 +30,7 @@ const TITLES: Record<Page, string> = {
   guide: "가이드북",
 };
 /** 세이브가 있어야 쓸 수 있는 화면 */
-const NEEDS_SAVE: Page[] = ["recommend", "owned", "stats"];
+const NEEDS_SAVE: Page[] = ["recommend", "check", "owned", "stats"];
 
 /** 브라우저 기록에 남기는 화면 상태. 뒤로가기를 누르면 이전 상태로 돌아간다 */
 interface NavState {
@@ -163,8 +164,13 @@ export default function App() {
               {/* 화면을 모두 그려 두고 숨기기만 해서, 오가도 추천 결과·필터가 유지되게 한다 */}
               {summary && (
                 <>
-                  <div hidden={page !== "recommend"}>
-                    <ClassicRecommenderView starters={summary.starters} dex={dex} status={summary.speciesStatus} />
+                  <div hidden={page !== "recommend" && page !== "check"}>
+                    <ClassicRecommenderView
+                      starters={summary.starters}
+                      dex={dex}
+                      status={summary.speciesStatus}
+                      mode={page === "check" ? "check" : "recommend"}
+                    />
                   </div>
                   <div hidden={page !== "owned"}>
                     <StarterTable starters={summary.starters} dex={dex} onOpen={(idx) => go({ detail: idx })} />
