@@ -456,15 +456,15 @@ tr.current > td { background: var(--hover); }
 
 /* ── 이로치 단계 (1럭 노랑 · 2럭 파랑 · 3럭 빨강) */
 .shiny-tiers { display: inline-flex; align-items: center; gap: 1px; vertical-align: middle; }
-.sparkle path { fill: none; stroke: var(--muted); stroke-width: 1.1; opacity: 0.55; vector-effect: non-scaling-stroke; }
-.sparkle.owned path { stroke: none; opacity: 1; }
-.sparkle.tier-1.owned path { fill: #e0a800; }
-.sparkle.tier-2.owned path { fill: #2f7de1; }
-.sparkle.tier-3.owned path { fill: #e0393e; }
+.sparkle rect { fill: var(--muted); }
+.sparkle:not(.owned) { opacity: 0.6; }
+.sparkle.tier-1.owned rect { fill: #e0a800; }
+.sparkle.tier-2.owned rect { fill: #2f7de1; }
+.sparkle.tier-3.owned rect { fill: #e0393e; }
 @media (prefers-color-scheme: dark) {
-  .sparkle.tier-1.owned path { fill: #f5c542; }
-  .sparkle.tier-2.owned path { fill: #6fa8ff; }
-  .sparkle.tier-3.owned path { fill: #ff6b70; }
+  .sparkle.tier-1.owned rect { fill: #f5c542; }
+  .sparkle.tier-2.owned rect { fill: #6fa8ff; }
+  .sparkle.tier-3.owned rect { fill: #ff6b70; }
 }
 .modal-shiny { margin-left: 6px; }
 
@@ -502,8 +502,3 @@ tr.current > td { background: var(--hover); }
 
 /* 숨겨진 특성은 노란색으로 */
 .hidden-ability .info-link, .hidden-ability-name { color: var(--c-gold); font-weight: 600; }
-/* 3럭 픽셀 반짝이: 미보유는 흐린 회색, 보유는 빨강 */
-.sparkle.pixel rect { fill: var(--muted); }
-.sparkle.pixel:not(.owned) { opacity: 0.35; }
-.sparkle.pixel.owned rect { fill: #e0393e; }
-@media (prefers-color-scheme: dark) { .sparkle.pixel.owned rect { fill: #ff6b70; } }
