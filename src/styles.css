@@ -502,3 +502,8 @@ tr.current > td { background: var(--hover); }
 
 /* 숨겨진 특성은 노란색으로 */
 .hidden-ability .info-link, .hidden-ability-name { color: var(--c-gold); font-weight: 600; }
+/* 성격표 머리 색: 상승(행)은 게임의 능력치 상승 색, 하강(열)은 하강 색. 밝은 화면은 같은 색 계열의 진한 쪽 */
+.nature-grid { --nat-up: #984038; --nat-down: #006090; }
+@media (prefers-color-scheme: dark) { .nature-grid { --nat-up: #f89890; --nat-down: #40c8f8; } }
+.nature-grid tbody th, .nature-grid .corner .up { color: var(--nat-up); }
+.nature-grid thead th:not(.corner), .nature-grid .corner .down { color: var(--nat-down); }
