@@ -81,7 +81,6 @@ const GROUPS: { title?: string; items: Item[] }[] = [
     items: [
       { page: "recommend", label: "파티 추천" },
       { page: "check", label: "파티 만들기" },
-      { page: "rotation", label: "로테이션" },
     ],
   },
   {
@@ -96,6 +95,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
     items: [
       { page: "owned", label: "보유 현황" },
       { page: "stats", label: "통계" },
+      { page: "rotation", label: "로테이션" },
     ],
   },
   { items: [{ page: "guide", label: "가이드북" }] },
