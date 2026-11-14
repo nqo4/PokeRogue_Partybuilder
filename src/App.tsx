@@ -15,6 +15,7 @@ import { PokedexView } from "./components/PokedexView";
 import { PAGES, Sidebar, type Page } from "./components/Sidebar";
 import { TrainersView } from "./components/TrainersView";
 import { BiomesView } from "./components/BiomesView";
+import { StatsView } from "./components/StatsView";
 import { OfficialContext } from "./components/OfficialContext";
 import { fetchOfficial, type Official } from "./lib/official";
 
@@ -24,10 +25,11 @@ const TITLES: Record<Page, string> = {
   trainers: "트레이너 도감",
   biomes: "바이옴 안내",
   owned: "보유 현황",
+  stats: "내 통계",
   guide: "가이드북",
 };
 /** 세이브가 있어야 쓸 수 있는 화면 */
-const NEEDS_SAVE: Page[] = ["recommend", "owned"];
+const NEEDS_SAVE: Page[] = ["recommend", "owned", "stats"];
 
 /** 브라우저 기록에 남기는 화면 상태. 뒤로가기를 누르면 이전 상태로 돌아간다 */
 interface NavState {
@@ -166,6 +168,9 @@ export default function App() {
                   </div>
                   <div hidden={page !== "owned"}>
                     <StarterTable starters={summary.starters} dex={dex} onOpen={(idx) => go({ detail: idx })} />
+                  </div>
+                  <div hidden={page !== "stats"}>
+                    <StatsView summary={summary} dex={dex} />
                   </div>
                 </>
               )}

@@ -89,24 +89,27 @@ export function ShinyTiers({
       : `이로치 ${tiers.map((t) => `${TIER_LABEL[t]} ${mask & (1 << t) ? "보유" : "미보유"}`).join(", ")}`;
   return (
     <span className="shiny-tiers" role="img" aria-label={label} title={label}>
-      {tiers.map((t) => {
-        const has = !!(mask & (1 << t));
-        return (
-          <svg
-            key={t}
-            className={`sparkle tier-${t + 1}${has ? " owned" : ""}`}
-            viewBox="0 0 16 16"
-            width={size}
-            height={size}
-            shapeRendering="crispEdges"
-            aria-hidden="true"
-          >
-            {(has ? ICONS[t] : OUTLINES[t]).map(([x, y, w, h], i) => (
-              <rect key={i} x={x} y={y} width={w} height={h} />
-            ))}
-          </svg>
-        );
-      })}
+      {tiers.map((t) => (
+        <ShinyIcon key={t} tier={t} owned={!!(mask & (1 << t))} size={size} />
+      ))}
     </span>
+  );
+}
+
+/** 이로치 단계 아이콘 하나 (tier: 0 1럭, 1 2럭, 2 3럭). 장식용이라 읽기 도구에서는 숨긴다 */
+export function ShinyIcon({ tier, owned, size = 16 }: { tier: number; owned: boolean; size?: number }) {
+  return (
+    <svg
+      className={`sparkle tier-${tier + 1}${owned ? " owned" : ""}`}
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+    >
+      {(owned ? ICONS[tier] : OUTLINES[tier]).map(([x, y, w, h], i) => (
+        <rect key={i} x={x} y={y} width={w} height={h} />
+      ))}
+    </svg>
   );
 }

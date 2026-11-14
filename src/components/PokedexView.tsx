@@ -6,6 +6,7 @@ import type { FormStatus } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STATUS_LABEL } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
+import { useOfficial } from "./OfficialContext";
 
 type FormFilter = "all" | "base" | "mega" | "gmax" | "other";
 const FORM_FILTERS: [FormFilter, string][] = [
@@ -26,6 +27,15 @@ interface Props {
 }
 
 export function PokedexView({ dex, status, shiny, onOpen }: Props) {
+  const official = useOfficial();
+  /** 이 형태로 진화하는 조건 ("파이리 → 레벨 16"). 메가·폼 변화 행과 진화 전 형태가 없는 포켓몬은 빈 문자열 */
+  const evoText = (s: (typeof dex.species)[number]) =>
+    s.form !== 0 || !official
+      ? ""
+      : official
+          .evolutionsTo(s.id)
+          .map((e) => `${dex.byId(e.from)?.name ?? e.from} → ${e.text.join(", ")}`)
+          .join(" / ");
   /** 잡은 형태인데 이로치 단계를 덜 모았는가 */
   const missingShiny = (s: (typeof dex.species)[number]) => {
     const need = s.variants === 3 ? 7 : 1;
@@ -115,6 +125,14 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
               <span className="small muted">No.{String(nationalDex(s.id)).padStart(4, "0")}</span>
               <Sprite species={s} size={56} />
               <span className="tile-name">{s.name}</span>
+              {(() => {
+                const evo = evoText(s);
+                return evo ? (
+                  <span className="tile-evo" title={evo}>
+                    {evo}
+                  </span>
+                ) : null;
+              })()}
               <span>
                 {s.types.map((t) => (
                   <span key={t} className="type" style={typeStyle(dex.data.typeColors[t])}>

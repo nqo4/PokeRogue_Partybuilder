@@ -1,7 +1,7 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
 import type { ReactNode } from "react";
 
-export type Page = "recommend" | "dex" | "trainers" | "biomes" | "owned" | "guide";
+export type Page = "recommend" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -41,6 +41,12 @@ const ICONS: Record<Page, ReactNode> = {
       <path d="M3 7l9 4 9-4M12 11v10" />
     </>,
   ),
+  // 막대그래프
+  stats: svg(
+    <>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </>,
+  ),
   // 책
   guide: svg(
     <>
@@ -65,7 +71,12 @@ const GROUPS: { title?: string; items: Item[] }[] = [
       { page: "biomes", label: "바이옴" },
     ],
   },
-  { items: [{ page: "owned", label: "보유 현황" }] },
+  {
+    items: [
+      { page: "owned", label: "보유 현황" },
+      { page: "stats", label: "통계" },
+    ],
+  },
   { items: [{ page: "guide", label: "가이드북" }] },
 ];
 

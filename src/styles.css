@@ -364,7 +364,7 @@ tr.current > td { background: var(--hover); }
     position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 110; height: auto; width: 100%;
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); border-right: none; border-top: 1px solid var(--border);
   }
-  .sidebar nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  .sidebar nav { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
   .side-group { display: contents; }
   .brand, .side-title, .side-footer { display: none; }
   .side-item, .side-item.sub {
@@ -507,3 +507,28 @@ tr.current > td { background: var(--hover); }
 @media (prefers-color-scheme: dark) { .nature-grid { --nat-up: #f89890; --nat-down: #40c8f8; } }
 .nature-grid tbody th, .nature-grid .corner .up { color: var(--nat-up); }
 .nature-grid thead th:not(.corner), .nature-grid .corner .down { color: var(--nat-down); }
+
+/* ── 내 통계 */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; align-items: start; }
+.stat-section { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.stat-section h2 { margin: 0 0 10px; font-size: 1.15rem; }
+.stat-section h3 { margin: 14px 0 6px; font-size: 0.95rem; color: var(--muted); }
+.stat-section p { margin: 6px 0; }
+.stat-bar { display: grid; grid-template-columns: 9.5em 1fr auto; align-items: center; gap: 10px; margin: 6px 0; font-variant-numeric: tabular-nums; }
+.stat-bar-label { display: inline-flex; align-items: center; gap: 6px; }
+.stat-bar-track { position: relative; height: 10px; border-radius: 5px; background: var(--hover); overflow: hidden; }
+.stat-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--accent); }
+.stat-bar-num { font-size: 0.85rem; white-space: nowrap; }
+.stat-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; margin: 8px 0 0; }
+.stat-facts div { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.stat-facts dt { font-size: 0.8rem; color: var(--muted); }
+.stat-facts dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+  .stat-bar { grid-template-columns: 1fr auto; }
+  .stat-bar-track { grid-column: 1 / -1; grid-row: 2; }
+}
+/* 도감 타일의 진화 조건: 두 줄까지만, 전체 문장은 마우스를 올리면 보인다 */
+.tile-evo {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  max-width: 100%; font-size: 0.75rem; line-height: 1.35; color: var(--muted); text-align: center; word-break: keep-all;
+}
