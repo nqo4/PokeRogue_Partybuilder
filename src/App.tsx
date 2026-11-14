@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDex, type Dex, type DexSpecies } from "./lib/dex";
 import { SpriteSelectContext } from "./components/Sprite";
 import { SaveError, decryptSave } from "./lib/save";
@@ -16,12 +16,14 @@ import { PAGES, Sidebar, type Page } from "./components/Sidebar";
 import { TrainersView } from "./components/TrainersView";
 import { BiomesView } from "./components/BiomesView";
 import { StatsView } from "./components/StatsView";
+import { RotationView } from "./components/RotationView";
 import { OfficialContext } from "./components/OfficialContext";
 import { fetchOfficial, type Official } from "./lib/official";
 
 const TITLES: Record<Page, string> = {
   recommend: "클래식 파티 추천",
   check: "파티 만들기",
+  rotation: "로테이션",
   dex: "포켓몬 도감",
   trainers: "트레이너 도감",
   biomes: "바이옴 안내",
@@ -103,6 +105,7 @@ export default function App() {
     }
   }
 
+  const ownedIds = useMemo(() => (summary ? new Set(summary.starters.map((s) => s.speciesId)) : undefined), [summary]);
   const detail = nav.detail != null ? dex?.species[nav.detail] : undefined;
   const page = nav.page;
 
@@ -182,6 +185,9 @@ export default function App() {
               )}
               <div hidden={page !== "dex"}>
                 <PokedexView dex={dex} status={summary?.speciesStatus} shiny={summary?.shinyById} onOpen={(idx) => go({ detail: idx })} />
+              </div>
+              <div hidden={page !== "rotation"}>
+                <RotationView dex={dex} owned={ownedIds} />
               </div>
               <div hidden={page !== "trainers"}>
                 <TrainersView dex={dex} />

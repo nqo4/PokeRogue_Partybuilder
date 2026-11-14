@@ -590,3 +590,28 @@ tr.current > td { background: var(--hover); }
 .pokerus-mon { display: inline-flex; align-items: center; gap: 2px; }
 .pokerus-mon.not-owned { opacity: 0.45; }
 .pokerus-tag { padding: 0 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: var(--c-purple); border: 1px solid currentColor; }
+
+/* 로테이션 */
+.rot-month { display: inline-flex; align-items: center; gap: 8px; }
+.rot-month button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.rot-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.rot-week { text-align: center; }
+.rot-day {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 92px; padding: 6px 4px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); text-align: center;
+}
+.rot-day > .small:first-child { align-self: flex-start; }
+.rot-day.today, .rot-list li.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.rot-mon { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; word-break: keep-all; }
+.rot-mon.not-owned { opacity: 0.45; }
+.rot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rot-list li { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.rot-date { flex: 0 0 80px; font-weight: 600; }
+.rot-mons { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.rot-list .rot-mon { flex-direction: row; gap: 4px; }
+@media (max-width: 600px) {
+  .rot-calendar { gap: 3px; }
+  .rot-day { min-height: 70px; padding: 4px 2px; }
+  .rot-day .rot-mon .small { font-size: 0.65rem; }
+  .rot-list li { flex-direction: column; align-items: flex-start; gap: 4px; }
+}

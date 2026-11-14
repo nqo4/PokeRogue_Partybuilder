@@ -26,6 +26,7 @@ import { toCamelCase } from "#utils/strings";
 import i18next from "i18next";
 import { test, vi } from "vitest";
 import { getPokerusStarters } from "#utils/pokemon-utils";
+import { getLegendaryGachaSpeciesForTimestamp, getValidLegendaryGachaSpecies } from "#data/egg";
 import { getEvoConditionDescription } from "../game-data-exporter/data-generators/evolution-texts";
 import { EvolutionItem } from "#balance/pokemon-evolutions";
 import {
@@ -237,6 +238,17 @@ test("export party builder data", async () => {
     console.warn("포켓러스 표본을 만들지 못했습니다:", e);
   }
 
+  // ── 알 뽑기 전설 픽업: 후보 목록(게임 순서 그대로)과 검증용 날짜별 결과
+  const legendaryGachaIds = getValidLegendaryGachaSpecies() as number[];
+  const legendarySamples: { date: string; id: number }[] = [];
+  try {
+    for (const date of ["2024-06-01", "2025-01-01", "2026-11-15", "2026-12-31", "2027-03-03"]) {
+      legendarySamples.push({ date, id: getLegendaryGachaSpeciesForTimestamp(Date.parse(`${date}T12:00:00Z`)) as number });
+    }
+  } catch (e) {
+    console.warn("전설 픽업 표본을 만들지 못했습니다:", e);
+  }
+
   const src = readFileSync(join(ROOT, "src/data/trainers/trainer-config.ts"), "utf8");
   const fixedSrc = readFileSync(join(ROOT, "src/data/trainers/fixed-battle-configs.ts"), "utf8");
   /** trainer-config.ts 안에서 한 트레이너의 설정 부분 */
@@ -409,6 +421,8 @@ test("export party builder data", async () => {
       starterColors,
       starterIds,
       pokerusSamples,
+      legendaryGachaIds,
+      legendarySamples,
       biomes,
       trainers,
       fixedWaves,

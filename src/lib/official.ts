@@ -135,6 +135,10 @@ export interface OfficialData {
   starterIds?: number[];
   /** 검증용: 게임 코드로 뽑은 날짜별 포켓러스 */
   pokerusSamples?: { date: string; ids: number[] }[];
+  /** 알 뽑기 전설 픽업 후보 (getValidLegendaryGachaSpecies 순서 그대로) */
+  legendaryGachaIds?: number[];
+  /** 검증용: 게임 코드로 뽑은 날짜별 전설 픽업 */
+  legendarySamples?: { date: string; id: number }[];
   biomes: Biome[];
   trainers: Trainer[];
   fixedWaves: FixedWave[];

@@ -1,7 +1,7 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
 import type { ReactNode } from "react";
 
-export type Page = "recommend" | "check" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
+export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -18,6 +18,13 @@ const ICONS: Record<Page, ReactNode> = {
       <path d="M9 4h6v3H9z" />
       <path d="M9 5H6v16h12V5h-3" />
       <path d="M9 14l2 2 4-4" />
+    </>,
+  ),
+  // 달력
+  rotation: svg(
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
     </>,
   ),
   // 몬스터볼
@@ -74,6 +81,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
     items: [
       { page: "recommend", label: "파티 추천" },
       { page: "check", label: "파티 만들기" },
+      { page: "rotation", label: "로테이션" },
     ],
   },
   {
