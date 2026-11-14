@@ -109,6 +109,18 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     if (tank) expect(tank.moveset[0].why).toBe("회복기");
   });
 
+  it("포지션: 한 마리에 하나, 포지션별 정원을 넘지 않고, 6마리 파티는 3가지 이상으로 나뉜다", () => {
+    const max = resolveConfig(dex).raw.positions.max;
+    for (const r of results) {
+      const a = r.analysis;
+      expect(a.positions.length).toBe(a.members.length);
+      for (const role of Object.keys(max) as (keyof typeof max)[]) {
+        expect(a.positions.filter((p) => p === role).length).toBeLessThanOrEqual(max[role]);
+      }
+      if (a.members.length === 6) expect(new Set(a.positions.filter(Boolean)).size).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it("지정한 포켓몬을 반드시 포함한다", () => {
     const [r] = rec.recommend({ onlyUncleared: true, required: [287], count: 1 });
     expect(r.analysis.members.some((m) => m.owned.speciesId === 287)).toBe(true);

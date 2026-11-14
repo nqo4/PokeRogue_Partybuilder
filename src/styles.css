@@ -477,3 +477,11 @@ tr.current > td { background: var(--hover); }
 .build-why { margin-left: 6px; font-size: 0.8rem; color: var(--muted); }
 .moveset { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
 .moveset li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+
+/* ── 파티 포지션: 요약 줄의 포켓몬당 한 가지 포지션, 상세의 배정된 역할 강조 */
+.strip-position {
+  margin-top: 2px; padding: 1px 8px; border-radius: 10px; font-size: 0.8rem; font-weight: 700;
+  background: var(--hover);
+}
+.strip-position.unfit { color: var(--muted); font-weight: 600; border: 1px dashed var(--border); background: none; }
+.role.assigned { outline: 2px solid currentColor; outline-offset: -2px; }

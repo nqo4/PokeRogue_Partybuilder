@@ -27,8 +27,11 @@ export interface PartyAnalysis {
   cost: number;
   luck: number;
   score: number;
-  /** 멤버별 맡은 역할 */
+  /** 멤버별로 맡을 수 있는 역할 (기준 점수 이상 전부) */
   memberRoles: Role[][];
+  /** 파티 안에서 멤버별로 배정된 포지션 하나 (맞는 자리가 없으면 null) */
+  positions: (Role | null)[];
+  /** 포지션별 인원 */
   roleCoverage: Record<Role, number>;
   hasAttacker: boolean;
   typeTable: TypeRow[];
@@ -45,6 +48,26 @@ export function memberRolesOf(c: Candidate): Role[] {
   return ROLES.filter((r) => c.roles[r].score >= ROLE_THRESHOLD);
 }
 
+/**
+ * 파티 안 포지션 배정: (포켓몬, 역할) 짝을 역할 점수가 높은 순으로 보면서, 아직 자리가 없는 포켓몬에게
+ * 정원이 남은 역할을 하나씩 맡긴다. 맞는 역할이 모두 정원에 막히면 null.
+ */
+export function assignPositions(members: Candidate[], max: Record<Role, number>): (Role | null)[] {
+  const positions: (Role | null)[] = members.map(() => null);
+  const left = { ...max };
+  const pairs = members
+    .flatMap((m, i) => ROLES.map((r) => ({ i, r, s: m.roles[r].score })))
+    .filter((p) => p.s >= ROLE_THRESHOLD)
+    .sort((a, b) => b.s - a.s);
+  for (const p of pairs) {
+    if (positions[p.i] == null && left[p.r] > 0) {
+      positions[p.i] = p.r;
+      left[p.r]--;
+    }
+  }
+  return positions;
+}
+
 export function analyzeParty(
   members: Candidate[],
   dex: Dex,
@@ -52,16 +75,21 @@ export function analyzeParty(
   chart: TypeMatrix,
 ): PartyAnalysis {
   const w = cfg.raw.weights;
+  const pw = cfg.raw.positions;
   const nTypes = dex.data.ranges.type[1];
   const memberRoles = members.map(memberRolesOf);
+  const positions = assignPositions(members, pw.max);
   const roleCoverage = Object.fromEntries(
-    ROLES.map((r) => [r, memberRoles.filter((rs) => rs.includes(r)).length]),
+    ROLES.map((r) => [r, positions.filter((p) => p === r).length]),
   ) as Record<Role, number>;
   const hasAttacker = roleCoverage.fast + roleCoverage.sweeper > 0;
 
   let score = 0;
   for (const m of members) score += m.value + w.member;
   if (!hasAttacker) score -= w.noAttackerPenalty;
+  // 포지션이 고루 나뉠수록 가산, 자리를 못 받은(역할이 겹친) 포켓몬은 감점
+  score += new Set(positions.filter((p) => p != null)).size * pw.distinctBonus;
+  score -= positions.filter((p) => p == null).length * pw.unfitPenalty;
   if (roleCoverage.tank) score += w.tankInParty;
   if (roleCoverage.support) score += w.supportInParty;
   if (roleCoverage.multi) score += w.multiInParty;
@@ -123,6 +151,7 @@ export function analyzeParty(
     luck: members.reduce((a, m) => a + m.owned.luck, 0),
     score,
     memberRoles,
+    positions,
     roleCoverage,
     hasAttacker,
     typeTable,

@@ -73,6 +73,13 @@
     ]
   },
 
+  "positions": {
+    "_설명": "파티 안에서 포켓몬마다 포지션 하나를 맡긴다. max: 포지션별 최대 인원, distinctBonus: 서로 다른 포지션 1개당 가산점, unfitPenalty: 맞는 포지션이 정원에 막혀(또는 맞는 역할이 없어) 못 받은 포켓몬 1마리당 감점",
+    "max": { "fast": 2, "sweeper": 2, "multi": 1, "tank": 1, "support": 1 },
+    "distinctBonus": 3,
+    "unfitPenalty": 6
+  },
+
   "weights": {
     "_설명": "점수 가중치",
     "bst": 0.06,

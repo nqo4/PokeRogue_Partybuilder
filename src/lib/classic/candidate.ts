@@ -77,6 +77,8 @@ export interface Candidate {
   primaryRole: Role | null;
   /** 주 역할에 맞춘 추천 기술 (최대 4개) */
   moveset: MovePick[];
+  /** 역할별 추천 기술·성격. 파티에서 다른 포지션을 맡으면 그 포지션 것을 쓴다 */
+  builds: Record<Role, { moveset: MovePick[]; nature: Candidate["nature"] }>;
   /** 개별 평가 점수 */
   value: number;
   /** 해금 상태·성격 등 품질 관련 설명 */
@@ -319,13 +321,20 @@ export class CandidateBuilder {
       null,
     );
     const [hpS, , defS, , spdS] = form.stats;
-    const moveset = this.pickMoveset(primaryRole, types, offenseStat, activeAbilities, moveList, {
-      prio: prioMoves,
-      setup: setupMoves,
-      spread: spreadMoves,
-      rec: recMoves,
-      sup: supMoves,
-    });
+    const lists = { prio: prioMoves, setup: setupMoves, spread: spreadMoves, rec: recMoves, sup: supMoves };
+    const bulkSide = hpS * defS >= hpS * spdS ? "def" : "spd";
+    const builds = Object.fromEntries(
+      ROLES.map((r) => [
+        r,
+        {
+          moveset: this.pickMoveset(r, types, offenseStat, activeAbilities, moveList, lists),
+          nature: this.pickNature(owned.natures, offenseStat, r, bulkSide),
+        },
+      ]),
+    ) as Candidate["builds"];
+    const moveset = primaryRole
+      ? builds[primaryRole].moveset
+      : this.pickMoveset(null, types, offenseStat, activeAbilities, moveList, lists);
     const abilityWhy =
       focus === "tank"
         ? "막이 역할: 받는 피해를 줄이는 특성"
@@ -349,7 +358,7 @@ export class CandidateBuilder {
     if (lockedEgg.length) notes.push(`알기술 미해금: ${lockedEgg.map((m) => m.name).join(", ")}`);
     quality += owned.ivTotal * w.ivPerPoint;
     quality += owned.luck * w.luckPerPoint;
-    const nature = this.pickNature(owned.natures, offenseStat, primaryRole, hpS * defS >= hpS * spdS ? "def" : "spd");
+    const nature = primaryRole ? builds[primaryRole].nature : this.pickNature(owned.natures, offenseStat, null, bulkSide);
     if (nature) quality += w.goodNature;
     else notes.push(`추천 성격(${offenseStat === "atk" ? "고집·명랑" : "조심·겁쟁이"}) 미해금`);
 
@@ -387,6 +396,7 @@ export class CandidateBuilder {
       nature,
       primaryRole,
       moveset,
+      builds,
       value,
       notes,
       typeChange,

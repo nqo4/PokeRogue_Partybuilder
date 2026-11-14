@@ -18,14 +18,6 @@ interface Props {
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
-/** 요약 줄에 쓰는 짧은 역할 이름 */
-const ROLE_SHORT: Record<(typeof ROLES)[number], string> = {
-  fast: "선공",
-  sweeper: "스위퍼",
-  multi: "광역·쉴드",
-  tank: "막이",
-  support: "서포터",
-};
 const FORM_LIMITS = [0, 1, 2, 3, 4, 5, 6];
 
 export function ClassicRecommenderView({ starters, dex, status }: Props) {
@@ -208,8 +200,8 @@ function PartyCard({
                 코스트 {m.owned.cost}
                 {m.owned.luck > 0 && <span className={`luck luck-${m.owned.luck}`}>럭 {m.owned.luck}</span>}
               </span>
-              <span className="strip-roles">
-                {a.memberRoles[i].length ? a.memberRoles[i].map((r) => ROLE_SHORT[r]).join(" · ") : "보조"}
+              <span className={`strip-position${a.positions[i] ? ` role-${a.positions[i]}` : " unfit"}`}>
+                {a.positions[i] ? ROLE_NAMES[a.positions[i]!] : "포지션 겹침"}
               </span>
             </button>
           </li>
@@ -242,12 +234,13 @@ function PartyCard({
 
       <div id={detailId} className="members" hidden={open.size === 0}>
         {a.members.map((m, i) =>
-          open.has(i) ? <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} typeBadge={typeBadge} /> : null,
+          open.has(i) ? <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} position={a.positions[i]} typeBadge={typeBadge} /> : null,
         )}
       </div>
 
       <p className="party-roles small muted">
-        역할 분포: {ROLES.filter((r) => a.roleCoverage[r]).map((r) => `${ROLE_NAMES[r]} ${a.roleCoverage[r]}`).join(" · ")}
+        포지션: {ROLES.filter((r) => a.roleCoverage[r]).map((r) => `${ROLE_NAMES[r]} ${a.roleCoverage[r]}`).join(" · ")}
+        {a.positions.some((p) => p == null) && ` · 겹침 ${a.positions.filter((p) => p == null).length}마리`}
       </p>
 
       <TypeTable a={a} dex={dex} typeBadge={typeBadge} />
@@ -309,13 +302,18 @@ export function ReasonView({ r }: { r: Reason }) {
 function MemberCard({
   m,
   roles,
+  position,
   typeBadge,
 }: {
   m: Candidate;
   roles: (typeof ROLES)[number][];
+  /** 파티 안에서 맡은 포지션 (없으면 이 포켓몬의 주 역할 기준으로 보여 준다) */
+  position: (typeof ROLES)[number] | null;
   typeBadge: (fid: number) => JSX.Element;
 }) {
   const o = m.owned;
+  const basis = position ?? m.primaryRole;
+  const build = basis ? m.builds[basis] : { moveset: m.moveset, nature: m.nature };
   const evolves = m.form.idx !== o.dex.idx;
   return (
     <div className="member">
@@ -342,11 +340,24 @@ function MemberCard({
         </div>
       </div>
       <div className="roles">
-        {roles.length ? roles.map((r) => <span key={r} className={`role role-${r}`}>{ROLE_NAMES[r]}</span>) : <span className="muted small">보조</span>}
+        {roles.length ? (
+          roles.map((r) => (
+            <span key={r} className={`role role-${r}${r === position ? " assigned" : ""}`} title={r === position ? "이 파티에서 맡은 포지션" : "맡을 수 있는 역할"}>
+              {ROLE_NAMES[r]}
+            </span>
+          ))
+        ) : (
+          <span className="muted small">보조</span>
+        )}
       </div>
       <section className="build" aria-label={`${m.form.name} 추천 세팅`}>
         <p className="build-title">
-          추천 세팅{m.primaryRole && <span className="muted"> · {ROLE_NAMES[m.primaryRole]} 기준</span>}
+          추천 세팅
+          {basis && (
+            <span className="muted">
+              {" "}· {ROLE_NAMES[basis]} {position ? "포지션" : "기준 (이 파티에서 포지션 겹침)"}
+            </span>
+          )}
         </p>
         <dl className="build-list">
           <dt>특성</dt>
@@ -363,10 +374,10 @@ function MemberCard({
           </dd>
           <dt>성격</dt>
           <dd>
-            {m.nature ? (
+            {build.nature ? (
               <>
-                {m.nature.name}
-                <span className="build-why">{m.nature.why}</span>
+                {build.nature.name}
+                <span className="build-why">{build.nature.why}</span>
               </>
             ) : (
               <span className="locked">맞는 성격 미해금</span>
@@ -374,9 +385,9 @@ function MemberCard({
           </dd>
           <dt>기술</dt>
           <dd>
-            {m.moveset.length ? (
+            {build.moveset.length ? (
               <ol className="moveset">
-                {m.moveset.map((p) => (
+                {build.moveset.map((p) => (
                   <li key={p.fid}>
                     <MoveLabel fid={p.fid} />
                     <span className="build-why">{p.why}</span>
