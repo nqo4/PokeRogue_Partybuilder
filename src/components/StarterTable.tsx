@@ -5,6 +5,8 @@ import type { OwnedStarter } from "../lib/starters";
 import { Sprite, nationalDex } from "./Sprite";
 import { STAT_NAMES } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
+import { SearchInput } from "./SearchInput";
+import { CostValue } from "./CostValue";
 
 /** 이 형태에서 잡을 수 있는 이로치 단계를 다 모았는가 */
 const shinyComplete = (mask: number, variants: 1 | 3) => (mask & (variants === 3 ? 7 : 1)) === (variants === 3 ? 7 : 1);
@@ -138,7 +140,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
             </option>
           ))}
         </select>
-        <input placeholder="이름 검색" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <SearchInput placeholder="이름 검색" value={query} onChange={setQuery} />
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
           {SORTS.map(([k, label]) => (
             <option key={k} value={k}>
@@ -168,7 +170,9 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
               <Sprite species={s.dex} size={56} />
               <span className="tile-name">{s.name}</span>
               <span>{s.dex.types.map(typeBadge)}</span>
-              <span className="small muted">코스트 {s.cost}</span>
+              <span className="small muted">
+                코스트 <CostValue cost={s.cost} reductions={s.costReductions} />
+              </span>
               <ShinyTiers mask={s.shinyTiers} variants={s.dex.variants} />
             </button>
           ))}
@@ -208,7 +212,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
                   </td>
                   <td>{s.dex.types.map(typeBadge)}</td>
                   <td className="num">
-                    {s.cost}
+                    <CostValue cost={s.cost} reductions={s.costReductions} />
                     {s.costReductions > 0 && <span className="muted"> ({s.baseCost}−{s.costReductions}회)</span>}
                   </td>
                   <td className="num">{s.maxBst}</td>

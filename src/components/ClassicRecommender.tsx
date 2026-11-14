@@ -9,6 +9,7 @@ import { Sprite } from "./Sprite";
 import { RouteSection } from "./RouteSection";
 import type { FormStatus } from "../lib/starters";
 import { InfoLink, MoveLabel } from "./InfoPopup";
+import { CostValue } from "./CostValue";
 
 interface Props {
   starters: OwnedStarter[];
@@ -197,7 +198,7 @@ function PartyCard({
               <span className="strip-name">{m.form.name}</span>
               <span className="strip-types">{m.types.map(typeBadge)}</span>
               <span className="strip-meta">
-                코스트 {m.owned.cost}
+                코스트 <CostValue cost={m.owned.cost} reductions={m.owned.costReductions} />
                 {m.owned.luck > 0 && <span className={`luck luck-${m.owned.luck}`}>럭 {m.owned.luck}</span>}
               </span>
               <span className={`strip-position${a.positions[i] ? ` role-${a.positions[i]}` : " unfit"}`}>
@@ -322,7 +323,9 @@ function MemberCard({
         <div className="member-title">
           <div>
             <b>{m.form.name}</b>
-            <span className="cost">코스트 {o.cost}</span>
+            <span className="cost">
+              코스트 <CostValue cost={o.cost} reductions={o.costReductions} />
+            </span>
           </div>
           {evolves && (
             <div className="muted small evolves-from">

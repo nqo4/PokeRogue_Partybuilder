@@ -8,6 +8,35 @@ export interface Evolution {
   level: number;
   /** 한국어 조건 문장 (예: "레벨 16", "아이템 사용: 물의돌 (슈퍼)") */
   text: string[];
+  /** 진화 아이템 그림 키 (itemSprites) */
+  item?: string | null;
+}
+
+/** 폼 변화: 메가진화·거다이맥스·원시회귀·오리진폼·아이템·날씨 등 */
+export interface FormChange {
+  species: number;
+  /** 게임 formIndex (Dex 의 같은 SpeciesId 안 순서) */
+  fromForm: number;
+  toForm: number;
+  /** 한국어 조건 문장 (예: "리자몽나이트 X를 통해 폼체인지") */
+  text: string;
+  /** 필요한 아이템 그림 키 (itemSprites) */
+  items: string[];
+}
+
+/** 아이템 스프라이트 시트(public/images/items.png) 안의 한 칸 */
+export interface ItemSprite {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 원래 칸(sw×sh) 안에서 그림이 놓인 위치 */
+  ox: number;
+  oy: number;
+  sw: number;
+  sh: number;
+  /** 한국어 아이템 이름 */
+  name: string;
 }
 
 export type PoolTier =
@@ -97,6 +126,11 @@ export interface FixedWave {
 export interface OfficialData {
   source: { name: string; url: string; license: string; gameVersion: string; commit: string };
   evolutions: Evolution[];
+  formChanges?: FormChange[];
+  itemSprites?: Record<string, ItemSprite>;
+  itemAtlas?: { w: number; h: number } | null;
+  /** 스타터 사탕 색 [바탕, 덧그림] (SpeciesId 문자열 → 16진 색) */
+  starterColors?: Record<string, [string, string]>;
   biomes: Biome[];
   trainers: Trainer[];
   fixedWaves: FixedWave[];
@@ -169,6 +203,11 @@ export class Official {
       seen.add(k);
       return true;
     });
+  }
+
+  /** 이 종의 이 폼으로 바뀌는 조건 */
+  formChangesTo(id: number, formIndex: number): FormChange[] {
+    return (this.data.formChanges ?? []).filter((f) => f.species === id && f.toForm === formIndex);
   }
 
   trainerName(type: string): string {

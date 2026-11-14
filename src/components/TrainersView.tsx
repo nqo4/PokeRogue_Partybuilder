@@ -14,6 +14,7 @@ import {
 } from "../lib/official";
 import { Sprite } from "./Sprite";
 import { useOfficial } from "./OfficialContext";
+import { SearchInput } from "./SearchInput";
 
 type Section = "evil" | "league" | "gym";
 const E4_KEYS = ["ELITE_FOUR_1", "ELITE_FOUR_2", "ELITE_FOUR_3", "ELITE_FOUR_4"];
@@ -195,7 +196,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
                 </option>
               ))}
             </select>
-            <input placeholder="관장 이름" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <SearchInput placeholder="관장 이름" value={query} onChange={setQuery} />
           </>
         )}
       </div>

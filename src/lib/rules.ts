@@ -77,3 +77,12 @@ export function popcount(n: number): number {
   for (let v = n >>> 0; v; v >>>= 1) c += v & 1;
   return c;
 }
+
+/**
+ * 사탕 1개를 얻는 친밀도 (= 친밀도 최대치). 기본 코스트(감소 전)로 정해진다.
+ * 공식 getStarterValueFriendshipCap 과 같은 값: 친밀도가 이만큼 차면 사탕 1개를 받고 다시 0부터 찬다.
+ */
+export function friendshipCap(baseCost: number): number {
+  const caps: Record<number, number> = { 1: 25, 2: 50, 3: 75, 4: 100, 5: 150, 6: 200, 7: 300, 8: 450, 9: 450 };
+  return caps[baseCost] ?? 600;
+}

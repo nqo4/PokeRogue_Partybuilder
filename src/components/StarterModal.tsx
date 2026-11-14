@@ -10,6 +10,11 @@ import { Sprite, nationalDex } from "./Sprite";
 import { ShinyTiers } from "./ShinyTiers";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { useOfficial } from "./OfficialContext";
+import { howToGet } from "../lib/obtain";
+import { ItemIcon } from "./ItemIcon";
+import { CostValue } from "./CostValue";
+import { CandyIcon } from "./CandyIcon";
+import { friendshipCap } from "../lib/rules";
 
 export const STAT_NAMES = ["HP", "공격", "방어", "특공", "특방", "스피드"];
 export const STATUS_LABEL: Record<FormStatus, string> = { caught: "잡음", seen: "발견만", unseen: "미발견" };
@@ -48,16 +53,17 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
   );
   const family = owned?.family ?? dex.family(species.family);
   const official = useOfficial();
-  const familyIds = new Set(family.map((f) => f.id));
-  /** 이 형태로 진화하는 방법 (계열 안의 이전 형태에서). 폼 변화 행에는 표시하지 않는다 */
-  const evoText = (f: DexSpecies) =>
-    f.form !== 0 || !official
-      ? []
-      : official
-          .evolutionsTo(f.id)
-          .filter((e) => familyIds.has(e.from) && e.from !== f.id)
-          .map((e) => `${dex.byId(e.from)?.name ?? e.from} → ${e.text.join(", ")}`);
-  const myEvo = evoText(species);
+  /** 이 형태를 얻는 방법: 진화 조건, 또는 메가·거다이맥스·원시회귀 등 폼 변화 조건 (아이템 그림 포함) */
+  const howView = (f: DexSpecies) =>
+    howToGet(f, dex, official).map((h, i) => (
+      <div key={i} className="how-to-get">
+        {h.items.map((it) => (
+          <ItemIcon key={it} item={it} size={24} />
+        ))}
+        <span>{h.text}</span>
+      </div>
+    ));
+  const myEvo = howToGet(species, dex, official);
   const baseTypes = (owned?.dex ?? family.find((f) => f.starter) ?? species).types.join(",");
   const myStatus = status?.[species.idx];
   const [, atk, , spa] = species.stats;
@@ -83,7 +89,11 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
               {myStatus && <span className={`status-tag status-${myStatus}`}>{STATUS_LABEL[myStatus]}</span>}
             </div>
             <h2>{species.name}</h2>
-            {myEvo.length > 0 && <div className="small accent">진화 조건: {myEvo.join(" / ")}</div>}
+            {myEvo.length > 0 && (
+              <div className="small accent">
+                {dex.formIndex(species) > 0 ? "폼 변화" : "진화 조건"}: {howView(species)}
+              </div>
+            )}
             <div>
               {species.types.map(typeBadge)}
               <span className={`atk-kind ${atk >= spa ? "phys" : "spec"}`}>{atk >= spa ? "물리형" : "특수형"}</span>
@@ -104,9 +114,16 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
                     {owned.name} ·{" "}
                   </>
                 )}
-                코스트 {owned.cost}
+                코스트 <CostValue cost={owned.cost} reductions={owned.costReductions} />
                 {owned.costReductions > 0 && ` (${owned.baseCost}−${owned.costReductions}회)`} · 클래식 클리어{" "}
-                {owned.classicWins}회 · 사탕 {owned.candy} · 친밀도 {owned.friendship}
+                {owned.classicWins}회 ·{" "}
+                <span className="candy-count" title="사탕">
+                  <CandyIcon speciesId={owned.speciesId} /> {owned.candy.toLocaleString()}개
+                </span>{" "}
+                · 친밀도{" "}
+                <span title="친밀도가 최대치에 닿으면 사탕 1개를 받고 0부터 다시 찬다">
+                  {owned.friendship}/{friendshipCap(owned.baseCost)}
+                </span>
               </div>
             ) : (
               <div className="small muted">{status ? "이 계열의 스타터를 아직 보유하지 않았습니다." : `기본 코스트 ${species.cost}`}</div>
@@ -245,9 +262,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
                         </td>
                         <td className="muted small dim-target">{stageOf(f)}</td>
                         <td className="small evo-cond">
-                          {evoText(f).map((x, i) => (
-                            <div key={i}>{x}</div>
-                          ))}
+                          {howView(f)}
                         </td>
                         <td className="num dim-target">{f.bst}</td>
                         {f.stats.map((v, i) => (

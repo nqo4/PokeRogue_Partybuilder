@@ -7,6 +7,9 @@ import { Sprite, nationalDex } from "./Sprite";
 import { STATUS_LABEL } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
 import { useOfficial } from "./OfficialContext";
+import { SearchInput } from "./SearchInput";
+import { howToGet } from "../lib/obtain";
+import { ItemIcon } from "./ItemIcon";
 
 type FormFilter = "all" | "base" | "mega" | "gmax" | "other";
 const FORM_FILTERS: [FormFilter, string][] = [
@@ -28,14 +31,8 @@ interface Props {
 
 export function PokedexView({ dex, status, shiny, onOpen }: Props) {
   const official = useOfficial();
-  /** 이 형태로 진화하는 조건 ("파이리 → 레벨 16"). 메가·폼 변화 행과 진화 전 형태가 없는 포켓몬은 빈 문자열 */
-  const evoText = (s: (typeof dex.species)[number]) =>
-    s.form !== 0 || !official
-      ? ""
-      : official
-          .evolutionsTo(s.id)
-          .map((e) => `${dex.byId(e.from)?.name ?? e.from} → ${e.text.join(", ")}`)
-          .join(" / ");
+  /** 이 형태를 얻는 방법(진화·폼 변화)은 howToGet 이 만든다 */
+
   /** 잡은 형태인데 이로치 단계를 덜 모았는가 */
   const missingShiny = (s: (typeof dex.species)[number]) => {
     const need = s.variants === 3 ? 7 : 1;
@@ -108,7 +105,7 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
             <option value="missingShiny">잡았지만 이로치 단계 덜 모음</option>
           </select>
         )}
-        <input placeholder="이름 또는 도감 번호" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <SearchInput placeholder="이름 또는 도감 번호" value={query} onChange={setQuery} />
         <span className="muted">{rows.length}개</span>
         {counts && (
           <span className="muted small">
@@ -126,12 +123,18 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
               <Sprite species={s} size={56} />
               <span className="tile-name">{s.name}</span>
               {(() => {
-                const evo = evoText(s);
-                return evo ? (
-                  <span className="tile-evo" title={evo}>
-                    {evo}
+                const how = howToGet(s, dex, official);
+                if (!how.length) return null;
+                const text = how.map((h) => h.text).join(" / ");
+                const items = [...new Set(how.flatMap((h) => h.items))];
+                return (
+                  <span className="tile-evo" title={text}>
+                    {items.map((it) => (
+                      <ItemIcon key={it} item={it} size={20} />
+                    ))}
+                    <span className="tile-evo-text">{text}</span>
                   </span>
-                ) : null;
+                );
               })()}
               <span>
                 {s.types.map((t) => (

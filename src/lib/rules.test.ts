@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NATURE_EFFECT, bestShinyTier, shinyTiersOf, starterCost, unlockedNatures } from "./rules";
+import { NATURE_EFFECT, bestShinyTier, friendshipCap, shinyTiersOf, starterCost, unlockedNatures } from "./rules";
 
 describe("starterCost", () => {
   it("1보다 크면 감소 1회당 1씩 줄어든다", () => {
@@ -41,4 +41,10 @@ describe("shinyTiersOf", () => {
   it("3럭을 잡으면 1럭도 등록되지만 2럭은 아니다", () => expect(shinyTiersOf(2n | 64n)).toBe(1 | 4));
   it("2럭은 따로 잡아야 한다", () => expect(shinyTiersOf(2n | 32n)).toBe(2));
   it("모두", () => expect(shinyTiersOf(2n | 16n | 32n | 64n)).toBe(7));
+});
+
+describe("friendshipCap", () => {
+  it("기본 코스트별 친밀도 최대치 (공식 값)", () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(friendshipCap)).toEqual([25, 50, 75, 100, 150, 200, 300, 450, 450, 600]);
+  });
 });
