@@ -467,3 +467,13 @@ tr.current > td { background: var(--hover); }
   .sparkle.tier-3.owned path { fill: #ff6b70; }
 }
 .modal-shiny { margin-left: 6px; }
+
+/* ── 추천 세팅 (특성·성격·기술) */
+.build { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
+.build-title { margin: 0 0 6px; font-weight: 700; font-size: 0.9rem; }
+.build-list { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: 0.9rem; }
+.build-list dt { color: var(--muted); }
+.build-list dd { margin: 0; min-width: 0; }
+.build-why { margin-left: 6px; font-size: 0.8rem; color: var(--muted); }
+.moveset { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.moveset li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }

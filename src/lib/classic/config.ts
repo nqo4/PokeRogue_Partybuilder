@@ -21,6 +21,10 @@ export interface ResolvedConfig {
   supportAbilities: Set<number>;
   multiHitAbilities: Set<number>;
   excludeMultiMoves: Set<number>;
+  /** 기술 4개 추천에서 뺄 기술 */
+  movesetExclude: Set<number>;
+  /** 반동기 감점을 하지 않는 특성 */
+  recoilImmuneAbilities: Set<number>;
   /** 단점 특성 fid → 공격 역할 배율 */
   drawbackAbilities: Map<number, number>;
   offenseAbilities: Map<number, number>;
@@ -75,6 +79,8 @@ export function resolveConfig(dex: Dex, raw: ClassicConfig = classicJson): Resol
     supportAbilities: new Set(raw.support.abilities.map(ab)),
     multiHitAbilities: new Set(raw.multi.multiHitAbilities.map(ab)),
     excludeMultiMoves: new Set(raw.multi.excludeMoves.map(mv)),
+    movesetExclude: new Set(raw.moveset.excludeMoves.map(mv)),
+    recoilImmuneAbilities: new Set(raw.moveset.recoilImmuneAbilities.map(ab)),
     drawbackAbilities: new Map(
       Object.entries(raw.drawbackAbilities)
         .filter(([k]) => !k.startsWith("_"))

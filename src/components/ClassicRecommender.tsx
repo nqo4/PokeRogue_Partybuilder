@@ -8,7 +8,7 @@ import type { PartyAnalysis } from "../lib/classic/party";
 import { Sprite } from "./Sprite";
 import { RouteSection } from "./RouteSection";
 import type { FormStatus } from "../lib/starters";
-import { InfoLink } from "./InfoPopup";
+import { InfoLink, MoveLabel } from "./InfoPopup";
 
 interface Props {
   starters: OwnedStarter[];
@@ -344,16 +344,51 @@ function MemberCard({
       <div className="roles">
         {roles.length ? roles.map((r) => <span key={r} className={`role role-${r}`}>{ROLE_NAMES[r]}</span>) : <span className="muted small">보조</span>}
       </div>
-      <p className="small">
-        <span className="label">특성</span> <InfoLink fid={m.ability.fid} />
-        {m.passive.active && (
-          <>
-            {" + "}
-            <InfoLink fid={m.passive.fid} />
-            (패시브)
-          </>
-        )}
-      </p>
+      <section className="build" aria-label={`${m.form.name} 추천 세팅`}>
+        <p className="build-title">
+          추천 세팅{m.primaryRole && <span className="muted"> · {ROLE_NAMES[m.primaryRole]} 기준</span>}
+        </p>
+        <dl className="build-list">
+          <dt>특성</dt>
+          <dd>
+            <InfoLink fid={m.ability.fid} />
+            {m.passive.active && (
+              <>
+                {" + "}
+                <InfoLink fid={m.passive.fid} />
+                <span className="muted">(패시브)</span>
+              </>
+            )}
+            <span className="build-why">{m.abilityWhy}</span>
+          </dd>
+          <dt>성격</dt>
+          <dd>
+            {m.nature ? (
+              <>
+                {m.nature.name}
+                <span className="build-why">{m.nature.why}</span>
+              </>
+            ) : (
+              <span className="locked">맞는 성격 미해금</span>
+            )}
+          </dd>
+          <dt>기술</dt>
+          <dd>
+            {m.moveset.length ? (
+              <ol className="moveset">
+                {m.moveset.map((p) => (
+                  <li key={p.fid}>
+                    <MoveLabel fid={p.fid} />
+                    <span className="build-why">{p.why}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <span className="muted">추천할 기술 없음</span>
+            )}
+          </dd>
+        </dl>
+      </section>
       <ul className="small reasons">
         {ROLES.filter((r) => m.roles[r].reasons.length && m.roles[r].score > 0).map((r) => (
           <li key={r}>
@@ -368,7 +403,6 @@ function MemberCard({
         ))}
       </ul>
       <p className="small">
-        <span className="label">성격</span> {m.nature ? m.nature.name : "추천 성격 미해금"} ·{" "}
         <span className="label">개체치</span> {o.ivTotal === 186 ? "6V" : o.ivs.join("/")}
       </p>
       {m.typeChange && <p className="small accent">타입 변화: {m.typeChange}</p>}

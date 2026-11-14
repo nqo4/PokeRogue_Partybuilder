@@ -89,6 +89,26 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     for (const r of second) expect(firstKeys.has(r.key)).toBe(false);
   });
 
+  it("역할별 추천 기술: 4개 이하, 중복·제외 기술 없음, 첫 칸이 주 역할 기술", () => {
+    const cfg = resolveConfig(dex);
+    const all = summary.starters.map((s) => rec.candidate(s.speciesId)).filter((c) => !!c);
+    for (const c of all) {
+      const fids = c.moveset.map((m) => m.fid);
+      expect(fids.length).toBeLessThanOrEqual(4);
+      expect(new Set(fids).size).toBe(fids.length);
+      for (const f of fids) {
+        expect(cfg.movesetExclude.has(f)).toBe(false);
+        expect(c.moves.has(f)).toBe(true); // 실제로 배울 수 있는 기술만
+      }
+    }
+    // 랭크업기가 있는 스위퍼는 첫 칸이 랭크업기
+    const sweeper = all.find((c) => c.primaryRole === "sweeper" && c.roles.sweeper.reasons.some((r) => r.text === "랭크업"));
+    expect(sweeper?.moveset[0].why).toBe("랭크업");
+    // 회복기가 있는 막이는 첫 칸이 회복기
+    const tank = all.find((c) => c.primaryRole === "tank" && cfg.recoveryMoves.has(c.moveset[0]?.fid));
+    if (tank) expect(tank.moveset[0].why).toBe("회복기");
+  });
+
   it("지정한 포켓몬을 반드시 포함한다", () => {
     const [r] = rec.recommend({ onlyUncleared: true, required: [287], count: 1 });
     expect(r.analysis.members.some((m) => m.owned.speciesId === 287)).toBe(true);
