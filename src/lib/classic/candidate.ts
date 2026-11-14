@@ -72,6 +72,8 @@ export interface Candidate {
   defense: number[];
   /** 방어 계산에 반영되지 않는 특성 효과 메모 */
   defenseNotes: string[];
+  /** 공격 타입별로 특성 때문에 배율이 바뀐 이유 (바뀌지 않았으면 빈 문자열) */
+  defenseWhy: string[];
   nature: { index: number; name: string; why: string } | null;
   /** 가장 점수가 높은 역할 (없으면 null). 기술·성격·특성 추천의 기준 */
   primaryRole: Role | null;
@@ -357,7 +359,7 @@ export class CandidateBuilder {
             : "해금된 특성 중 가장 쓸모 있는 것";
 
     // ── 방어 상성 (특성·패시브 반영)
-    const { defense, notes: defenseNotes } = this.defenseVector(types, activeAbilities);
+    const { defense, notes: defenseNotes, why: defenseWhy } = this.defenseVector(types, activeAbilities);
 
     // ── 품질: 패시브, 알기술, 개체치, 성격, 럭, 메가
     const w = raw.weights;
@@ -405,6 +407,7 @@ export class CandidateBuilder {
       roles,
       defense,
       defenseNotes,
+      defenseWhy,
       nature,
       primaryRole,
       moveset,
@@ -462,7 +465,11 @@ export class CandidateBuilder {
     return { bonus, labels };
   }
 
-  defenseVector(types: number[], abilities: number[]): { defense: number[]; notes: string[] } {
+  /**
+   * 공격 타입별로 받는 배율 (특성 반영).
+   * why[t] 는 특성 때문에 배율이 바뀐 이유 (예: "필터: 약점 데미지 0.75배"), 바뀌지 않았으면 빈 문자열
+   */
+  defenseVector(types: number[], abilities: number[]): { defense: number[]; notes: string[]; why: string[] } {
     const { cfg, dex, chart } = this;
     const nTypes = dex.data.ranges.type[1];
     const notes: string[] = [];
@@ -472,29 +479,45 @@ export class CandidateBuilder {
       [TAG.GROUND_IMMUNE, "땅"],
       [TAG.WATER_IMMUNE, "물"],
     ];
-    const tagImmune = new Set<number>();
+    const tagImmune = new Map<number, number>(); // 타입 → 무효로 만드는 특성
     for (const a of abilities) {
       const tags = dex.abilityTags(a);
-      for (const [tag, typeName] of immuneTag) if (tags.includes(tag)) tagImmune.add(dex.fid("type", typeName));
+      for (const [tag, typeName] of immuneTag) if (tags.includes(tag)) tagImmune.set(dex.fid("type", typeName), a);
       const e = cfg.abilityEffects.get(a);
       if (e) notes.push(...e.notes.map((n) => `${dex.name(a)}: ${n}`));
     }
     const defense: number[] = [];
+    const why: string[] = [];
     for (let t = 0; t < nTypes; t++) {
       let m = typeMultiplier(chart, t, types);
       const base = m;
+      const reasons: string[] = [];
       for (const a of abilities) {
         const e = cfg.abilityEffects.get(a);
         if (!e) continue;
         const mm = e.multiplier.get(t);
-        if (mm != null) m *= mm;
-        if (e.superEffective && base > 1) m *= e.superEffective;
-        if (e.onlySuperEffective && base <= 1) m = 0;
+        if (mm != null) {
+          m *= mm;
+          reasons.push(`${dex.name(a)}: ${dex.name(t)} ${mm === 0 ? "무효" : `${mm}배`}`);
+        }
+        if (e.superEffective && base > 1) {
+          m *= e.superEffective;
+          reasons.push(`${dex.name(a)}: 약점 데미지 ${e.superEffective}배`);
+        }
+        if (e.onlySuperEffective && base <= 1) {
+          m = 0;
+          reasons.push(`${dex.name(a)}: 약점이 아닌 공격 무효`);
+        }
       }
-      if (tagImmune.has(t)) m = 0;
+      const immuneBy = tagImmune.get(t);
+      if (immuneBy != null && m !== 0) {
+        m = 0;
+        reasons.push(`${dex.name(immuneBy)}: ${dex.name(t)} 무효`);
+      }
       defense.push(m);
+      why.push(reasons.length ? reasons.join(", ") : "");
     }
-    return { defense, notes };
+    return { defense, notes, why };
   }
 
   /**

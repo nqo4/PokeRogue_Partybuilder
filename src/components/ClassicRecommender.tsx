@@ -466,11 +466,22 @@ function TypeTable({ a, dex, typeBadge }: { a: PartyAnalysis; dex: Dex; typeBadg
             {a.typeTable.map((row) => (
               <tr key={row.type} className={row.weak >= 2 && row.weak > row.resist ? "danger" : ""}>
                 <td>{typeBadge(row.type)}</td>
-                {row.multipliers.map((x, i) => (
-                  <td key={i} className={`mult ${MULT_CLASS(x)}`}>
-                    {MULT_LABEL(Math.round(x * 100) / 100)}
-                  </td>
-                ))}
+                {row.multipliers.map((x, i) => {
+                  const why = a.members[i].defenseWhy[row.type];
+                  const label = MULT_LABEL(Math.round(x * 100) / 100);
+                  return (
+                    <td key={i} className={`mult ${MULT_CLASS(x)}`}>
+                      {why ? (
+                        // 특성 때문에 바뀐 배율: 점선 밑줄, 마우스를 올리면 이유가 보인다
+                        <span className="mult-why" title={why} aria-label={`${label || "1"}배 (${why})`}>
+                          {label || "1"}
+                        </span>
+                      ) : (
+                        label
+                      )}
+                    </td>
+                  );
+                })}
                 <td className="num">{row.weak || ""}</td>
                 <td className="num">{row.resist || ""}</td>
               </tr>
@@ -478,7 +489,10 @@ function TypeTable({ a, dex, typeBadge }: { a: PartyAnalysis; dex: Dex; typeBadg
           </tbody>
         </table>
       </div>
-      <p className="small muted">{dex.data.source.name} 데이터와 9세대 상성표 기준. 날씨·필드·테라스탈은 반영하지 않습니다.</p>
+      <p className="small muted">
+        점선 밑줄이 있는 칸은 특성·패시브 때문에 바뀐 배율이고, 마우스를 올리면 이유가 나옵니다. {dex.data.source.name} 데이터와
+        9세대 상성표 기준이며 날씨·필드·테라스탈은 반영하지 않습니다.
+      </p>
     </details>
   );
 }

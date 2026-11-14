@@ -32,6 +32,10 @@ describe("설정·상성", () => {
     expect(b.defenseVector([T("노말")], [ab("복슬복슬")]).defense[T("불꽃")]).toBe(2);
     expect(b.defenseVector([T("물"), T("비행")], [ab("피뢰침")]).defense[T("전기")]).toBe(0);
     expect(b.defenseVector([T("풀")], [ab("필터")]).defense[T("불꽃")]).toBe(1.5);
+    // 바뀐 칸에는 이유가 붙고, 그대로인 칸은 빈 문자열
+    expect(b.defenseVector([T("풀")], [ab("필터")]).why[T("불꽃")]).toBe("필터: 약점 데미지 0.75배");
+    expect(b.defenseVector([T("풀")], [ab("필터")]).why[T("물")]).toBe("");
+    expect(b.defenseVector([T("물"), T("비행")], [ab("피뢰침")]).why[T("전기")]).toBe("피뢰침: 전기 무효");
   });
 });
 

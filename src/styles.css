@@ -549,3 +549,5 @@ tr.current > td { background: var(--hover); }
 .cost-value.cost-r2 { color: var(--cost-r2); font-weight: 700; }
 .candy-icon { margin-right: 2px; }
 .candy-count { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
+/* 상성표: 특성 때문에 바뀐 배율 (마우스를 올리면 이유) */
+.mult-why { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
