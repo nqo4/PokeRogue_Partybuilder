@@ -383,19 +383,20 @@ function MemberCard({
               <span className="locked">맞는 성격 미해금</span>
             )}
           </dd>
-          <dt>기술</dt>
+          <dt title="스타터 화면에서 고를 수 있는 기술: 레벨 5 이하에 배우는 기술 + 해금한 알기술">시작 기술</dt>
           <dd>
             {build.moveset.length ? (
               <ol className="moveset">
                 {build.moveset.map((p) => (
                   <li key={p.fid}>
                     <MoveLabel fid={p.fid} />
+                    {o.eggMoves.some((e) => e.fid === p.fid) && <span className="egg-tag">알기술</span>}
                     <span className="build-why">{p.why}</span>
                   </li>
                 ))}
               </ol>
             ) : (
-              <span className="muted">추천할 기술 없음</span>
+              <span className="muted">고를 수 있는 시작 기술 없음</span>
             )}
           </dd>
         </dl>

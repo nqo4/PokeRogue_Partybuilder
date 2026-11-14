@@ -485,3 +485,4 @@ tr.current > td { background: var(--hover); }
 }
 .strip-position.unfit { color: var(--muted); font-weight: 600; border: 1px dashed var(--border); background: none; }
 .role.assigned { outline: 2px solid currentColor; outline-offset: -2px; }
+.egg-tag { margin-left: 4px; padding: 0 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: var(--c-teal); border: 1px solid currentColor; }

@@ -321,20 +321,32 @@ export class CandidateBuilder {
       null,
     );
     const [hpS, , defS, , spdS] = form.stats;
-    const lists = { prio: prioMoves, setup: setupMoves, spread: spreadMoves, rec: recMoves, sup: supMoves };
+    // 기술 추천은 스타터 화면에서 고를 수 있는 기술만: 스타터 형태의 레벨 1~5 기술 + 해금 알기술
+    // (게임의 getStarterMoves 와 같은 범위. 레벨 0 은 진화 기술이라 빠진다)
+    const startSet = new Set(owned.eggMoves.filter((m) => m.unlocked).map((m) => m.fid));
+    for (const [k, code] of Object.entries(owned.dex.moves)) if (code >= 1 && code <= 5) startSet.add(Number(k));
+    const onlyStart = (l: MoveEntry[]) => l.filter(([f]) => startSet.has(f));
+    const startList = onlyStart(moveList);
+    const lists = {
+      prio: onlyStart(prioMoves),
+      setup: onlyStart(setupMoves),
+      spread: onlyStart(spreadMoves),
+      rec: onlyStart(recMoves),
+      sup: onlyStart(supMoves),
+    };
     const bulkSide = hpS * defS >= hpS * spdS ? "def" : "spd";
     const builds = Object.fromEntries(
       ROLES.map((r) => [
         r,
         {
-          moveset: this.pickMoveset(r, types, offenseStat, activeAbilities, moveList, lists),
+          moveset: this.pickMoveset(r, types, offenseStat, activeAbilities, startList, lists),
           nature: this.pickNature(owned.natures, offenseStat, r, bulkSide),
         },
       ]),
     ) as Candidate["builds"];
     const moveset = primaryRole
       ? builds[primaryRole].moveset
-      : this.pickMoveset(null, types, offenseStat, activeAbilities, moveList, lists);
+      : this.pickMoveset(null, types, offenseStat, activeAbilities, startList, lists);
     const abilityWhy =
       focus === "tank"
         ? "막이 역할: 받는 피해를 줄이는 특성"
@@ -612,6 +624,7 @@ export class CandidateBuilder {
       if (picks.length === before) add(first(lists.rec), "회복기");
       if (picks.length === before) add(first(lists.sup), "보조기");
       if (picks.length === before) add(attacks.find((a) => !used.has(a.fid))?.fid, "공격기");
+      if (picks.length === before) add(moveList.find(([f]) => ok(f) && !used.has(f))?.[0], "남은 시작 기술");
       if (picks.length === before) break;
     }
     return picks;
