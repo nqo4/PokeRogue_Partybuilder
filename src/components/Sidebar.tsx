@@ -73,7 +73,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
   {
     items: [
       { page: "recommend", label: "파티 추천" },
-      { page: "check", label: "내 파티 점검" },
+      { page: "check", label: "파티 만들기" },
     ],
   },
   {

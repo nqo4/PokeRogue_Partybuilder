@@ -21,7 +21,7 @@ import { fetchOfficial, type Official } from "./lib/official";
 
 const TITLES: Record<Page, string> = {
   recommend: "클래식 파티 추천",
-  check: "내 파티 점검",
+  check: "파티 만들기",
   dex: "포켓몬 도감",
   trainers: "트레이너 도감",
   biomes: "바이옴 안내",
