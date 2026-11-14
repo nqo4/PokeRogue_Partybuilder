@@ -38,10 +38,31 @@ const TIER3_PIXELS: [number, number, number, number][] = [
   [18, 23, 7, 2],
 ];
 
+/**
+ * 작게(16px) 그릴 때 쓰는 같은 배치의 16×16 칸 버전. 칸 하나가 화면 1픽셀이라 뭉개지지 않는다.
+ * (31칸 버전을 14~16px 로 줄이면 칸이 1픽셀보다 작아져 줄이 빠진다)
+ */
+const TIER3_PIXELS_SMALL: [number, number, number, number][] = [
+  // 큰 반짝이 (가운데 x5, y9)
+  [5, 3, 1, 13],
+  [4, 7, 3, 1],
+  [3, 8, 5, 1],
+  [0, 9, 12, 1],
+  [3, 10, 5, 1],
+  [4, 11, 3, 1],
+  // 오른쪽 위 반짝이 (가운데 x12, y4)
+  [12, 0, 1, 8],
+  [11, 3, 3, 3],
+  [8, 4, 8, 1],
+  // 아래 작은 반짝이 (가운데 x11, y12)
+  [11, 11, 1, 3],
+  [9, 12, 5, 1],
+];
+
 export function ShinyTiers({
   mask,
   variants,
-  size = 14,
+  size = 16,
   hideEmpty = false,
 }: {
   /** 보유 단계 비트 (1럭 1, 2럭 2, 3럭 4) */
@@ -66,13 +87,13 @@ export function ShinyTiers({
           <svg
             key={t}
             className={`sparkle pixel tier-3${mask & 4 ? " owned" : ""}`}
-            viewBox="0 0 31 31"
+            viewBox={size >= 28 ? "0 0 31 31" : "0 0 16 16"}
             width={size}
             height={size}
             shapeRendering="crispEdges"
             aria-hidden="true"
           >
-            {TIER3_PIXELS.map(([x, y, w, h], i) => (
+            {(size >= 28 ? TIER3_PIXELS : TIER3_PIXELS_SMALL).map(([x, y, w, h], i) => (
               <rect key={i} x={x} y={y} width={w} height={h} />
             ))}
           </svg>

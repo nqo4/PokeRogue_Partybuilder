@@ -219,7 +219,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
                   ))}
                   <td className={s.eggMovesUnlocked < 4 ? "locked num" : "num"}>{s.eggMovesUnlocked}/4</td>
                   <td>
-                    <ShinyTiers mask={s.shinyTiers} variants={s.dex.variants} size={15} />
+                    <ShinyTiers mask={s.shinyTiers} variants={s.dex.variants} />
                   </td>
                   <td className="num">{s.classicWins}</td>
                 </tr>
