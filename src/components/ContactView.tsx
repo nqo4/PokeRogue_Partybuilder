@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 /** Web3Forms 접근 키. 공개해도 되는 키(받는 주소를 숨겨 주는 용도)라 코드에 그대로 둔다. 비어 있으면 양식을 잠근다 */
-const WEB3FORMS_KEY = "4bc2053d-e96c-450d-8e15-da3d453e9d60";
+const WEB3FORMS_KEY: string = "4bc2053d-e96c-450d-8e15-da3d453e9d60";
 
 const KINDS = ["버그 신고", "기능 제안", "데이터 오류", "기타"] as const;
 const MAX = 2000;
