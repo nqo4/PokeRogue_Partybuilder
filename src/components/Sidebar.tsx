@@ -1,5 +1,5 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { followSystem, loadTheme, saveTheme, type ThemeChoice } from "../lib/theme";
 import { ContactDialog } from "./ContactDialog";
 
@@ -111,12 +111,12 @@ interface Props {
   footer?: ReactNode;
 }
 
-/** 배경 색 버튼: 누를 때마다 밝게 → 어둡게 → 시스템 순으로 바뀐다 */
-const THEMES: Record<ThemeChoice, { label: string; next: ThemeChoice; icon: ReactNode }> = {
+/** 배경 색 버튼: 누르면 셋 중에서 고르는 목록이 열린다 */
+const THEME_ORDER: ThemeChoice[] = ["light", "dark", "system"];
+const THEMES: Record<ThemeChoice, { label: string; icon: ReactNode }> = {
   // 해
   light: {
     label: "밝게",
-    next: "dark",
     icon: svg(
       <>
         <circle cx="12" cy="12" r="4" />
@@ -125,11 +125,10 @@ const THEMES: Record<ThemeChoice, { label: string; next: ThemeChoice; icon: Reac
     ),
   },
   // 달
-  dark: { label: "어둡게", next: "system", icon: svg(<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />) },
+  dark: { label: "어둡게", icon: svg(<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />) },
   // 모니터
   system: {
     label: "시스템 설정에 맞게",
-    next: "light",
     icon: svg(
       <>
         <rect x="3" y="4" width="18" height="12" rx="2" />
@@ -144,6 +143,21 @@ export function Sidebar({ page, onSelect, footer }: Props) {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeChoice>(loadTheme);
   const [contact, setContact] = useState(false);
+  /** 배경 색 고르기 목록이 열려 있는가 */
+  const [themeMenu, setThemeMenu] = useState(false);
+  const themeRef = useRef<HTMLDivElement>(null);
+  // 목록 바깥을 누르거나 Esc 를 누르면 닫는다
+  useEffect(() => {
+    if (!themeMenu) return;
+    const onDown = (e: MouseEvent) => !themeRef.current?.contains(e.target as Node) && setThemeMenu(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setThemeMenu(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [themeMenu]);
   const closeContact = useCallback(() => setContact(false), []);
   useEffect(() => followSystem(theme), [theme]);
   useEffect(() => {
@@ -213,18 +227,37 @@ export function Sidebar({ page, onSelect, footer }: Props) {
               </>,
             )}
           </button>
-          <button
-            className="side-tool"
-            onClick={() => {
-              const next = THEMES[theme].next;
-              setTheme(next);
-              saveTheme(next);
-            }}
-            aria-label={`배경 색: ${THEMES[theme].label} (누르면 ${THEMES[THEMES[theme].next].label})`}
-            title={`배경 색: ${THEMES[theme].label}`}
-          >
-            {THEMES[theme].icon}
-          </button>
+          <div className="theme-wrap" ref={themeRef}>
+            <button
+              className="side-tool"
+              onClick={() => setThemeMenu(!themeMenu)}
+              aria-label={`배경 색: ${THEMES[theme].label}`}
+              aria-haspopup="true"
+              aria-expanded={themeMenu}
+              title={`배경 색: ${THEMES[theme].label}`}
+            >
+              {THEMES[theme].icon}
+            </button>
+            {themeMenu && (
+              <div className="theme-menu" role="group" aria-label="배경 색">
+                {THEME_ORDER.map((v) => (
+                  <button
+                    key={v}
+                    className={theme === v ? "active" : ""}
+                    aria-pressed={theme === v}
+                    onClick={() => {
+                      setTheme(v);
+                      saveTheme(v);
+                      setThemeMenu(false);
+                    }}
+                  >
+                    {THEMES[v].icon}
+                    <span>{THEMES[v].label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {footer && <div className="side-footer">{footer}</div>}
       </aside>
