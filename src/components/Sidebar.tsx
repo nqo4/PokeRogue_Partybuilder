@@ -1,8 +1,9 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { followSystem, loadTheme, saveTheme, type ThemeChoice } from "../lib/theme";
+import { ContactDialog } from "./ContactDialog";
 
-export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide" | "contact";
+export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -63,13 +64,6 @@ const ICONS: Record<Page, ReactNode> = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </>,
   ),
-  // 편지 봉투
-  contact: svg(
-    <>
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 6 9-6" />
-    </>,
-  ),
   // 책
   guide: svg(
     <>
@@ -106,12 +100,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
       { page: "rotation", label: "로테이션" },
     ],
   },
-  {
-    items: [
-      { page: "guide", label: "가이드북" },
-      { page: "contact", label: "문의 보내기" },
-    ],
-  },
+  { items: [{ page: "guide", label: "가이드북" }] },
 ];
 
 export const PAGES: Page[] = GROUPS.flatMap((g) => g.items.map((i) => i.page));
@@ -122,16 +111,40 @@ interface Props {
   footer?: ReactNode;
 }
 
-const THEMES: [ThemeChoice, string][] = [
-  ["light", "밝게"],
-  ["dark", "어둡게"],
-  ["system", "시스템"],
-];
+/** 배경 색 버튼: 누를 때마다 밝게 → 어둡게 → 시스템 순으로 바뀐다 */
+const THEMES: Record<ThemeChoice, { label: string; next: ThemeChoice; icon: ReactNode }> = {
+  // 해
+  light: {
+    label: "밝게",
+    next: "dark",
+    icon: svg(
+      <>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </>,
+    ),
+  },
+  // 달
+  dark: { label: "어둡게", next: "system", icon: svg(<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />) },
+  // 모니터
+  system: {
+    label: "시스템 설정에 맞게",
+    next: "light",
+    icon: svg(
+      <>
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path d="M8 20h8M12 16v4" />
+      </>,
+    ),
+  },
+};
 
 export function Sidebar({ page, onSelect, footer }: Props) {
   /** 좁은 화면에서 왼쪽 서랍 메뉴가 열려 있는가 (넓은 화면에서는 쓰지 않는다) */
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeChoice>(loadTheme);
+  const [contact, setContact] = useState(false);
+  const closeContact = useCallback(() => setContact(false), []);
   useEffect(() => followSystem(theme), [theme]);
   useEffect(() => {
     if (!open) return;
@@ -183,23 +196,39 @@ export function Sidebar({ page, onSelect, footer }: Props) {
             </div>
           ))}
         </nav>
-        <div className="theme-picker" role="group" aria-label="배경 색">
-          {THEMES.map(([v, label]) => (
-            <button
-              key={v}
-              className={theme === v ? "active" : ""}
-              aria-pressed={theme === v}
-              onClick={() => {
-                setTheme(v);
-                saveTheme(v);
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="side-tools">
+          <button
+            className="side-tool"
+            onClick={() => {
+              setOpen(false);
+              setContact(true);
+            }}
+            aria-label="문의 보내기"
+            title="문의 보내기"
+          >
+            {svg(
+              <>
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 7l9 6 9-6" />
+              </>,
+            )}
+          </button>
+          <button
+            className="side-tool"
+            onClick={() => {
+              const next = THEMES[theme].next;
+              setTheme(next);
+              saveTheme(next);
+            }}
+            aria-label={`배경 색: ${THEMES[theme].label} (누르면 ${THEMES[THEMES[theme].next].label})`}
+            title={`배경 색: ${THEMES[theme].label}`}
+          >
+            {THEMES[theme].icon}
+          </button>
         </div>
         {footer && <div className="side-footer">{footer}</div>}
       </aside>
+      {contact && <ContactDialog onClose={closeContact} />}
     </>
   );
 }

@@ -343,12 +343,13 @@ tr.current > td { background: var(--hover); }
 .side-item.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .side-item .soon { margin-left: auto; font-size: 0.75rem; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; opacity: 0.6; }
 .side-footer { padding: 10px; border-top: 1px solid var(--border); }
-/* 배경 색 고르기 (밝게 / 어둡게 / 시스템) */
-.theme-picker { display: flex; margin: auto 4px 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.theme-picker button { flex: 1; padding: 6px 0; border: none; background: var(--surface); color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
-.theme-picker button + button { border-left: 1px solid var(--border); }
-.theme-picker button:hover { background: var(--hover); }
-.theme-picker button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+/* 메뉴 아래 아이콘 버튼 (문의 보내기 · 배경 색) */
+.side-tools { display: flex; gap: 6px; margin: auto 4px 10px; }
+.side-tool {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); cursor: pointer;
+}
+.side-tool:hover { background: var(--hover); color: var(--text); }
 .header h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
 /* 세이브 상태 줄: 불러온 뒤에는 한 줄만 차지한다 */
 .save-bar {
@@ -631,8 +632,8 @@ tr.current > td { background: var(--hover); }
   .rot-list li { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 
-/* 문의 보내기 */
-.contact { max-width: 640px; }
+/* 문의 보내기 팝업 */
+.modal.contact { width: min(560px, 100%); }
 .contact-form { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
 .contact-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .contact-form select, .contact-form textarea {
