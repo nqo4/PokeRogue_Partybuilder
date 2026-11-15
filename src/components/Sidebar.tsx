@@ -1,5 +1,5 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
@@ -110,10 +110,15 @@ interface Props {
 }
 
 export function Sidebar({ page, onSelect, footer }: Props) {
+  const navRef = useRef<HTMLElement>(null);
+  // 좁은 화면의 아래쪽 메뉴는 옆으로 밀리므로, 지금 화면의 메뉴가 가려져 있으면 보이게 당긴다
+  useEffect(() => {
+    navRef.current?.querySelector(".side-item.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [page]);
   return (
     <aside className="sidebar">
       <div className="brand">포켓로그 파티 빌더</div>
-      <nav>
+      <nav ref={navRef}>
         {GROUPS.map((g, gi) => (
           <div key={gi} className="side-group">
             {g.title && <div className="side-title">{g.title}</div>}
