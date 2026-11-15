@@ -1,5 +1,5 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
 
@@ -110,34 +110,60 @@ interface Props {
 }
 
 export function Sidebar({ page, onSelect, footer }: Props) {
-  const navRef = useRef<HTMLElement>(null);
-  // 좁은 화면의 아래쪽 메뉴는 옆으로 밀리므로, 지금 화면의 메뉴가 가려져 있으면 보이게 당긴다
+  /** 좁은 화면에서 왼쪽 서랍 메뉴가 열려 있는가 (넓은 화면에서는 쓰지 않는다) */
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    navRef.current?.querySelector(".side-item.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [page]);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    // 메뉴가 열린 동안 뒤 화면이 스크롤되지 않게 한다
+    document.body.classList.add("menu-open");
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.classList.remove("menu-open");
+    };
+  }, [open]);
+
   return (
-    <aside className="sidebar">
-      <div className="brand">포켓로그 파티 빌더</div>
-      <nav ref={navRef}>
-        {GROUPS.map((g, gi) => (
-          <div key={gi} className="side-group">
-            {g.title && <div className="side-title">{g.title}</div>}
-            {g.items.map((it) => (
-              <button
-                key={it.page}
-                className={`side-item${page === it.page ? " active" : ""}${g.title ? " sub" : ""}`}
-                onClick={() => onSelect(it.page)}
-                aria-current={page === it.page ? "page" : undefined}
-              >
-                {ICONS[it.page]}
-                <span>{it.label}</span>
-                {it.soon && <span className="soon">준비 중</span>}
-              </button>
-            ))}
-          </div>
-        ))}
-      </nav>
-      {footer && <div className="side-footer">{footer}</div>}
-    </aside>
+    <>
+      <button
+        className="menu-button"
+        aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
+        aria-expanded={open}
+        aria-controls="side-menu"
+        onClick={() => setOpen(!open)}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div className={`menu-backdrop${open ? " open" : ""}`} onClick={() => setOpen(false)} aria-hidden="true" />
+      <aside id="side-menu" className={`sidebar${open ? " open" : ""}`}>
+        <div className="brand">포켓로그 파티 빌더</div>
+        <nav>
+          {GROUPS.map((g, gi) => (
+            <div key={gi} className="side-group">
+              {g.title && <div className="side-title">{g.title}</div>}
+              {g.items.map((it) => (
+                <button
+                  key={it.page}
+                  className={`side-item${page === it.page ? " active" : ""}${g.title ? " sub" : ""}`}
+                  onClick={() => {
+                    onSelect(it.page);
+                    setOpen(false);
+                  }}
+                  aria-current={page === it.page ? "page" : undefined}
+                >
+                  {ICONS[it.page]}
+                  <span>{it.label}</span>
+                  {it.soon && <span className="soon">준비 중</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        {footer && <div className="side-footer">{footer}</div>}
+      </aside>
+    </>
   );
 }

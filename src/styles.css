@@ -357,28 +357,34 @@ tr.current > td { background: var(--hover); }
 .upload.compact:hover { border-color: var(--accent); }
 .upload:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* 좁은 화면: 메뉴를 엄지가 닿는 아래쪽 탭 막대 한 줄로 보여 준다 */
+/* 좁은 화면: 왼쪽 위 햄버거 버튼을 누르면 메뉴가 왼쪽에서 밀려 나온다 */
+.menu-button, .menu-backdrop { display: none; }
 @media (max-width: 860px) {
-  .layout { flex-direction: column; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .layout { flex-direction: column; }
+  .menu-button {
+    display: inline-flex; align-items: center; justify-content: center; position: fixed; top: 10px; left: 10px; z-index: 120;
+    width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--text); cursor: pointer; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+  }
   .sidebar {
-    position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 110; height: auto; width: 100%;
-    padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); border-right: none; border-top: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 130; width: min(260px, 80vw); height: 100%;
+    padding-top: 18px; overflow-y: auto; box-shadow: 2px 0 16px rgb(0 0 0 / 0.2);
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
   }
-  /* 메뉴가 많아 한 줄에 안 들어가면 두 줄로 접지 않고 옆으로 밀어서 본다 */
-  .sidebar nav {
-    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(58px, 1fr); gap: 2px;
-    overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+  .sidebar.open { transform: none; visibility: visible; transition: transform 0.25s ease; }
+  .menu-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 125; background: rgb(0 0 0 / 0.4);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
   }
-  .sidebar nav::-webkit-scrollbar { display: none; }
-  .side-group { display: contents; }
-  .brand, .side-title, .side-footer { display: none; }
-  .side-item, .side-item.sub {
-    flex-direction: column; justify-content: center; gap: 2px; width: auto; min-height: 52px; padding: 6px 2px;
-    font-size: 0.75rem; text-align: center; white-space: nowrap;
-  }
-  .side-item .soon { display: none; }
-  .scroll-top { bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .menu-backdrop.open { opacity: 1; pointer-events: auto; }
+  body.menu-open { overflow: hidden; }
   .page { padding-top: 16px !important; }
+  /* 제목이 햄버거 버튼에 가리지 않게 */
+  .header h1 { padding-left: 48px; min-height: 40px; display: flex; align-items: center; margin-top: -6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .menu-backdrop { transition: none !important; }
 }
 .evo-cond { white-space: normal !important; min-width: 160px; color: var(--muted); }
 
