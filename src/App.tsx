@@ -10,6 +10,7 @@ import { Footer } from "./components/Footer";
 import { ClassicRecommenderView } from "./components/ClassicRecommender";
 import { InfoProvider } from "./components/InfoPopup";
 import { Guide } from "./components/Guide";
+import { ContactView } from "./components/ContactView";
 import { ScrollTopButton } from "./components/ScrollTopButton";
 import { PokedexView } from "./components/PokedexView";
 import { PAGES, Sidebar, type Page } from "./components/Sidebar";
@@ -30,6 +31,7 @@ const TITLES: Record<Page, string> = {
   owned: "보유 현황",
   stats: "내 통계",
   guide: "가이드북",
+  contact: "문의 보내기",
 };
 /** 세이브가 있어야 쓸 수 있는 화면 */
 const NEEDS_SAVE: Page[] = ["recommend", "check", "owned", "stats"];
@@ -194,6 +196,9 @@ export default function App() {
               </div>
               <div hidden={page !== "biomes"}>
                 <BiomesView dex={dex} status={summary?.speciesStatus} />
+              </div>
+              <div hidden={page !== "contact"}>
+                <ContactView />
               </div>
               <div hidden={page !== "guide"}>
                 <Guide />

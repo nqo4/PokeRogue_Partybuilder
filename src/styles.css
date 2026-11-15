@@ -14,28 +14,28 @@
   --c-gold: #8a6400;
   --locked: #b0563b;
   --hover: #f0f3fb;
-  color-scheme: light dark;
+  color-scheme: light;
   font-family: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15161a;
-    --surface: #1e2026;
-    --text: #e8e8ee;
-    --muted: #9a9aa6;
-    --border: #33353d;
-    --accent: #7ea2ff;
-    --c-blue: #8fb0ff;
-    --on-accent: #0f1320;
-    --c-red: #ff8a9a;
-    --c-orange: #ffad66;
-    --c-teal: #5fd3c4;
-    --c-purple: #c4a0ff;
-    --c-gold: #f0c94a;
-    --locked: #ef9a7c;
-    --hover: #262a35;
-  }
+/* 어두운 배경. data-theme 는 index.html 과 src/lib/theme.ts 가 정한다 (시스템 설정이면 그쪽을 따른다) */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15161a;
+  --surface: #1e2026;
+  --text: #e8e8ee;
+  --muted: #9a9aa6;
+  --border: #33353d;
+  --accent: #7ea2ff;
+  --c-blue: #8fb0ff;
+  --on-accent: #0f1320;
+  --c-red: #ff8a9a;
+  --c-orange: #ffad66;
+  --c-teal: #5fd3c4;
+  --c-purple: #c4a0ff;
+  --c-gold: #f0c94a;
+  --locked: #ef9a7c;
+  --hover: #262a35;
 }
 
 * { box-sizing: border-box; }
@@ -342,7 +342,13 @@ tr.current > td { background: var(--hover); }
 .side-item:hover { background: var(--hover); }
 .side-item.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .side-item .soon { margin-left: auto; font-size: 0.75rem; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; opacity: 0.6; }
-.side-footer { margin-top: auto; padding: 10px; border-top: 1px solid var(--border); }
+.side-footer { padding: 10px; border-top: 1px solid var(--border); }
+/* 배경 색 고르기 (밝게 / 어둡게 / 시스템) */
+.theme-picker { display: flex; margin: auto 4px 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.theme-picker button { flex: 1; padding: 6px 0; border: none; background: var(--surface); color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.theme-picker button + button { border-left: 1px solid var(--border); }
+.theme-picker button:hover { background: var(--hover); }
+.theme-picker button.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .header h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
 /* 세이브 상태 줄: 불러온 뒤에는 한 줄만 차지한다 */
 .save-bar {
@@ -472,11 +478,9 @@ tr.current > td { background: var(--hover); }
 .sparkle.tier-1.owned rect { fill: #e0a800; }
 .sparkle.tier-2.owned rect { fill: #2f7de1; }
 .sparkle.tier-3.owned rect { fill: #e0393e; }
-@media (prefers-color-scheme: dark) {
-  .sparkle.tier-1.owned rect { fill: #f5c542; }
-  .sparkle.tier-2.owned rect { fill: #6fa8ff; }
-  .sparkle.tier-3.owned rect { fill: #ff6b70; }
-}
+[data-theme="dark"] .sparkle.tier-1.owned rect { fill: #f5c542; }
+[data-theme="dark"] .sparkle.tier-2.owned rect { fill: #6fa8ff; }
+[data-theme="dark"] .sparkle.tier-3.owned rect { fill: #ff6b70; }
 .modal-shiny { margin-left: 6px; }
 
 /* ── 추천 세팅 (특성·성격·기술) */
@@ -515,7 +519,7 @@ tr.current > td { background: var(--hover); }
 .hidden-ability .info-link, .hidden-ability-name, .rare-egg .info-link { color: var(--c-gold); font-weight: 600; }
 /* 성격표 머리 색: 상승(행)은 게임의 능력치 상승 색, 하강(열)은 하강 색. 밝은 화면은 같은 색 계열의 진한 쪽 */
 .nature-grid { --nat-up: #984038; --nat-down: #006090; }
-@media (prefers-color-scheme: dark) { .nature-grid { --nat-up: #f89890; --nat-down: #40c8f8; } }
+[data-theme="dark"] .nature-grid { --nat-up: #f89890; --nat-down: #40c8f8; }
 .nature-grid tbody th, .nature-grid .corner .up { color: var(--nat-up); }
 .nature-grid thead th:not(.corner), .nature-grid .corner .down { color: var(--nat-down); }
 
@@ -555,7 +559,7 @@ tr.current > td { background: var(--hover); }
 
 /* 코스트 숫자 색 (게임과 같게): 1회 감소 파랑, 2회 감소 노랑. 밝은 화면은 같은 계열의 진한 색 */
 .cost-value { --cost-r1: #006090; --cost-r2: #7d7a2c; }
-@media (prefers-color-scheme: dark) { .cost-value { --cost-r1: #40c8f8; --cost-r2: #e8e8a8; } }
+[data-theme="dark"] .cost-value { --cost-r1: #40c8f8; --cost-r2: #e8e8a8; }
 .cost-value.cost-r1 { color: var(--cost-r1); font-weight: 700; }
 .cost-value.cost-r2 { color: var(--cost-r2); font-weight: 700; }
 .candy-icon { margin-right: 2px; }
@@ -626,3 +630,22 @@ tr.current > td { background: var(--hover); }
   .rot-day .rot-mon .small { font-size: 0.65rem; }
   .rot-list li { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+/* 문의 보내기 */
+.contact { max-width: 640px; }
+.contact-form { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.contact-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.contact-form select, .contact-form textarea {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 400;
+}
+.contact-form select { align-self: flex-start; }
+.contact-form textarea { resize: vertical; min-height: 160px; line-height: 1.5; }
+.contact-form .primary { align-self: flex-start; }
+.contact-form .primary:disabled { cursor: not-allowed; }
+.contact-count { align-self: flex-end; font-weight: 400; }
+.contact-hp { position: absolute; left: -9999px; }
+.contact-note { padding: 8px 12px; border-radius: 8px; background: var(--hover); }
+.contact-error { margin: 0; color: var(--c-red); }
+.contact-done { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.contact-done button { padding: 5px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; cursor: pointer; }

@@ -1,7 +1,8 @@
 // 왼쪽 사이드바 메뉴. 좁은 화면에서는 위쪽 가로 메뉴로 바뀐다.
 import { useEffect, useState, type ReactNode } from "react";
+import { followSystem, loadTheme, saveTheme, type ThemeChoice } from "../lib/theme";
 
-export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
+export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide" | "contact";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -62,6 +63,13 @@ const ICONS: Record<Page, ReactNode> = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </>,
   ),
+  // 편지 봉투
+  contact: svg(
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </>,
+  ),
   // 책
   guide: svg(
     <>
@@ -98,7 +106,12 @@ const GROUPS: { title?: string; items: Item[] }[] = [
       { page: "rotation", label: "로테이션" },
     ],
   },
-  { items: [{ page: "guide", label: "가이드북" }] },
+  {
+    items: [
+      { page: "guide", label: "가이드북" },
+      { page: "contact", label: "문의 보내기" },
+    ],
+  },
 ];
 
 export const PAGES: Page[] = GROUPS.flatMap((g) => g.items.map((i) => i.page));
@@ -109,9 +122,17 @@ interface Props {
   footer?: ReactNode;
 }
 
+const THEMES: [ThemeChoice, string][] = [
+  ["light", "밝게"],
+  ["dark", "어둡게"],
+  ["system", "시스템"],
+];
+
 export function Sidebar({ page, onSelect, footer }: Props) {
   /** 좁은 화면에서 왼쪽 서랍 메뉴가 열려 있는가 (넓은 화면에서는 쓰지 않는다) */
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemeChoice>(loadTheme);
+  useEffect(() => followSystem(theme), [theme]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -162,6 +183,21 @@ export function Sidebar({ page, onSelect, footer }: Props) {
             </div>
           ))}
         </nav>
+        <div className="theme-picker" role="group" aria-label="배경 색">
+          {THEMES.map(([v, label]) => (
+            <button
+              key={v}
+              className={theme === v ? "active" : ""}
+              aria-pressed={theme === v}
+              onClick={() => {
+                setTheme(v);
+                saveTheme(v);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {footer && <div className="side-footer">{footer}</div>}
       </aside>
     </>

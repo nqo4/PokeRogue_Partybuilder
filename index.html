@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>포켓로그 파티 빌더</title>
+    <!-- 배경 색을 그리기 전에 정해서 깜빡이지 않게 한다 (규칙은 src/lib/theme.ts 와 같다) -->
+    <script>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("theme"); } catch (e) {}
+        var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
     <!-- 본문 글꼴: Pretendard (SIL OFL). 쓰는 글자만 나눠 받는 동적 서브셋 -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link
