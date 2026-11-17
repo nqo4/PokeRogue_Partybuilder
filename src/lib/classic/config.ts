@@ -17,6 +17,11 @@ export interface ResolvedConfig {
   raw: ClassicConfig;
   excludePriority: Set<number>;
   recoveryMoves: Set<number>;
+  /** 물리막이·특수막이로 보는 특성 */
+  physTankAbilities: Set<number>;
+  specTankAbilities: Set<number>;
+  /** 회복기처럼 보는 특성 (재생력·포이즌힐 등) */
+  healAbilities: Set<number>;
   supportMoves: Set<number>;
   supportAbilities: Set<number>;
   multiHitAbilities: Set<number>;
@@ -75,6 +80,9 @@ export function resolveConfig(dex: Dex, raw: ClassicConfig = classicJson): Resol
     raw,
     excludePriority: new Set(raw.fast.excludePriorityMoves.map(mv)),
     recoveryMoves: new Set(raw.tank.recoveryMoves.map(mv)),
+    physTankAbilities: new Set(raw.tank.physAbilities.map(ab)),
+    specTankAbilities: new Set(raw.tank.specAbilities.map(ab)),
+    healAbilities: new Set(raw.tank.healAbilities.map(ab)),
     supportMoves: new Set(raw.support.moves.map(mv)),
     supportAbilities: new Set(raw.support.abilities.map(ab)),
     multiHitAbilities: new Set(raw.multi.multiHitAbilities.map(ab)),

@@ -35,8 +35,13 @@
   },
 
   "tank": {
-    "_설명": "막이몬: HP×방어 또는 HP×특방",
+    "_설명": "막이몬. 물리막이는 HP×방어·방어 특성·방어 랭크업기, 특수막이는 HP×특방·특수 방어 특성·특방 랭크업기(2단계 이상, 또는 방어·특방 동시 상승)로 본다. 내구 곱이 기준의 minBulkRatio 배 미만이면 특성·랭크업만으로는 인정하지 않는다",
     "minBulkProduct": 10000,
+    "minBulkRatio": 0.6,
+    "physAbilities": ["철가시", "까칠한피부", "퍼코트", "복슬복슬", "이상한비늘", "지구력", "멀티스케일", "스펙터가드"],
+    "specAbilities": ["얼음인분", "멀티스케일", "스펙터가드"],
+    "_healAbilities": "회복기처럼 보는 특성 (물리·특수막이 공통)",
+    "healAbilities": ["재생력", "포이즌힐", "아이스바디", "젖은접시", "건조피부", "볼주머니"],
     "recoveryMoves": ["HP회복", "날개쉬기", "알낳기", "우유마시기", "광합성", "아침햇살", "달빛", "잠자기", "생명의물방울", "꽃가루경단", "모래모으기", "웅크리기", "아쿠아링", "뿌리박기"]
   },
 
@@ -75,7 +80,7 @@
 
   "positions": {
     "_설명": "파티 안에서 포켓몬마다 포지션 하나를 맡긴다. max: 포지션별 최대 인원, distinctBonus: 서로 다른 포지션 1개당 가산점, unfitPenalty: 맞는 포지션이 정원에 막혀(또는 맞는 역할이 없어) 못 받은 포켓몬 1마리당 감점",
-    "max": { "fast": 2, "sweeper": 2, "multi": 1, "tank": 1, "support": 1 },
+    "max": { "fast": 2, "sweeper": 2, "multi": 1, "physTank": 1, "specTank": 1, "support": 1 },
     "distinctBonus": 3,
     "unfitPenalty": 6
   },
@@ -83,7 +88,7 @@
   "weights": {
     "_설명": "점수 가중치",
     "bst": 0.06,
-    "role": { "fast": 10, "sweeper": 12, "multi": 5, "tank": 6, "support": 5 },
+    "role": { "fast": 10, "sweeper": 12, "multi": 5, "physTank": 6, "specTank": 6, "support": 5 },
     "passiveUnlocked": 3,
     "eggMoveUnlocked": 0.5,
     "ivPerPoint": 0.03,

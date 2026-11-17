@@ -90,7 +90,7 @@ export function analyzeParty(
   // 포지션이 고루 나뉠수록 가산, 자리를 못 받은(역할이 겹친) 포켓몬은 감점
   score += new Set(positions.filter((p) => p != null)).size * pw.distinctBonus;
   score -= positions.filter((p) => p == null).length * pw.unfitPenalty;
-  if (roleCoverage.tank) score += w.tankInParty;
+  if (roleCoverage.physTank || roleCoverage.specTank) score += w.tankInParty;
   if (roleCoverage.support) score += w.supportInParty;
   if (roleCoverage.multi) score += w.multiInParty;
 

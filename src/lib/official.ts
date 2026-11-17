@@ -26,6 +26,8 @@ export interface FormChange {
 
 /** 아이템 스프라이트 시트(public/images/items.png) 안의 한 칸 */
 export interface ItemSprite {
+  /** 게임 상점 등급: common 노말, great 슈퍼, ultra 하이퍼, rogue 로그, master 마스터 */
+  tier?: "common" | "great" | "ultra" | "rogue" | "master";
   x: number;
   y: number;
   w: number;

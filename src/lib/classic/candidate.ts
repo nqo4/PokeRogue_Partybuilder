@@ -7,13 +7,14 @@ import type { TypeMatrix } from "../typeChart";
 import { typeMultiplier } from "../typeChart";
 import type { ResolvedConfig } from "./config";
 
-export type Role = "fast" | "sweeper" | "multi" | "tank" | "support";
-export const ROLES: Role[] = ["fast", "sweeper", "multi", "tank", "support"];
+export type Role = "fast" | "sweeper" | "multi" | "physTank" | "specTank" | "support";
+export const ROLES: Role[] = ["fast", "sweeper", "multi", "physTank", "specTank", "support"];
 export const ROLE_NAMES: Record<Role, string> = {
   fast: "선공형",
   sweeper: "스위퍼",
   multi: "다대다·쉴드",
-  tank: "막이",
+  physTank: "물리막이",
+  specTank: "특수막이",
   support: "서포터",
 };
 
@@ -46,7 +47,8 @@ export interface MovePick {
 }
 
 /** 특성 선택 기준: 기본은 화력, 막이·서포터가 주 역할이면 그 역할에 맞는 특성을 다시 고른다 */
-type AbilityFocus = "offense" | "tank" | "support";
+type AbilityFocus = "offense" | "physTank" | "specTank" | "support";
+const isTank = (r: Role | AbilityFocus | null): r is "physTank" | "specTank" => r === "physTank" || r === "specTank";
 
 type MoveEntry = readonly [number, MoveInfo];
 
@@ -92,7 +94,9 @@ export interface Candidate {
 const STAT_INDEX = { hp: 0, atk: 1, def: 2, spa: 3, spd: 4, spe: 5 } as const;
 /** 효과 번호: 사용자 공격·특공·스피드, 전 능력치 */
 const SELF_ATK = 0;
+const SELF_DEF = 1;
 const SELF_SPA = 2;
+const SELF_SPD = 3;
 const SELF_SPE = 4;
 const SELF_ALL = 22;
 /** 효과 번호 0~6 은 사용자 능력치 (공격·방어·특공·특방·스피드·명중·회피) */
@@ -116,7 +120,7 @@ export class CandidateBuilder {
     for (const form of this.targetForms(owned)) {
       let c = this.evaluate(owned, form, "offense");
       // 막이·서포터가 주 역할이면 그 역할에 맞는 특성으로 다시 평가해 본다
-      if (c.primaryRole === "tank" || c.primaryRole === "support") {
+      if (isTank(c.primaryRole) || c.primaryRole === "support") {
         const again = this.evaluate(owned, form, c.primaryRole);
         if (again.ability.fid !== c.ability.fid && again.primaryRole === c.primaryRole) c = again;
       }
@@ -178,6 +182,7 @@ export class CandidateBuilder {
 
     // ── 역할 판정
     const roles = {} as Record<Role, RoleResult>;
+    const healAbs = activeAbilities.filter((a) => cfg.healAbilities.has(a));
     // 역할 판정에서 찾은 기술 목록 (기술 추천에 다시 쓴다)
     let prioMoves: MoveEntry[] = [];
     let setupMoves: MoveEntry[] = [];
@@ -275,22 +280,51 @@ export class CandidateBuilder {
       roles.multi = { score: clamp01(score), reasons };
     }
 
-    // 막이: HP×방어 / HP×특방, 회복기
-    {
+    // 물리막이·특수막이: 내구(HP×방어 / HP×특방), 받는 피해를 줄이는 특성, 방어 랭크업기, 회복기
+    const [hp, , def, , spd] = form.stats;
+    const sure = (c: number) => c === -1 || c >= 100;
+    // 방어(특방)를 2단계 이상, 또는 방어·특방을 함께 올리는 변화기 (철벽·녹기·코튼가드·망각술·코스믹파워 등)
+    const bulkUp = (eff: number) =>
+      moveList.filter(([, m]) => {
+        if (m.cat !== 2) return false;
+        const up = (e: number, min: number) => m.procs.some(([c, pe, st]) => pe === e && st >= min && sure(c));
+        return up(eff, 2) || (up(eff, 1) && up(SELF_DEF, 1) && up(SELF_SPD, 1));
+      });
+    const defSetup = bulkUp(SELF_DEF);
+    const spdSetup = bulkUp(SELF_SPD);
+    const tankRole = (stat: number, statName: string, abilitySet: Set<number>, setup: MoveEntry[]): RoleResult => {
       const reasons: Reason[] = [];
+      const min = raw.tank.minBulkProduct;
+      const bulk = hp * stat;
       let score = 0;
-      const [hp, , def, , spd] = form.stats;
-      const bulk = Math.max(hp * def, hp * spd);
-      if (bulk >= raw.tank.minBulkProduct) {
-        score = 0.5 + clamp01((bulk - raw.tank.minBulkProduct) / 10000) * 0.3;
-        reasons.push({ text: hp * def >= hp * spd ? `물리 내구 (HP ${hp} · 방어 ${def})` : `특수 내구 (HP ${hp} · 특방 ${spd})` });
-        if (recMoves.length) {
-          score += 0.2;
-          reasons.push({ text: "회복기", refs: recMoves.slice(0, 2).map(([f]) => f) });
-        }
+      if (bulk >= min) {
+        score = 0.5 + clamp01((bulk - min) / 10000) * 0.3;
+        reasons.push({ text: `HP ${hp} · ${statName} ${stat}` });
       }
-      roles.tank = { score: clamp01(score), reasons };
-    }
+      // 특성·랭크업기만 있을 때는 너무 약한 포켓몬을 막이로 보지 않는다
+      const bulkyEnough = bulk >= min * raw.tank.minBulkRatio;
+      const abs = activeAbilities.filter((x) => abilitySet.has(x));
+      if (abs.length && bulkyEnough) {
+        score = score ? score + 0.15 : 0.5;
+        reasons.push({ text: "", refs: abs });
+      }
+      if (setup.length && bulkyEnough) {
+        score = score ? score + 0.15 : 0.5;
+        reasons.push({ text: `${statName} 랭크업`, refs: setup.slice(0, 2).map(([f]) => f) });
+      }
+      if (score > 0 && recMoves.length) {
+        score += 0.15;
+        reasons.push({ text: "회복기", refs: recMoves.slice(0, 2).map(([f]) => f) });
+      }
+      // 재생력·포이즌힐 같은 회복 특성도 회복기처럼 버티는 힘을 늘린다
+      if (score > 0 && healAbs.length) {
+        score += 0.15;
+        reasons.push({ text: "회복 특성", refs: healAbs });
+      }
+      return { score: clamp01(score), reasons };
+    };
+    roles.physTank = tankRole(def, "방어", cfg.physTankAbilities, defSetup);
+    roles.specTank = tankRole(spd, "특방", cfg.specTankAbilities, spdSetup);
 
     // 서포터: 방해·강화 기술, 서포트 특성
     {
@@ -322,7 +356,6 @@ export class CandidateBuilder {
       (best, r) => (roles[r].score > 0 && (!best || roles[r].score > roles[best].score) ? r : best),
       null,
     );
-    const [hpS, , defS, , spdS] = form.stats;
     // 기술 추천은 스타터 화면에서 고를 수 있는 기술만: 스타터 형태의 레벨 1~5 기술 + 해금 알기술
     // (게임의 getStarterMoves 와 같은 범위. 레벨 0 은 진화 기술이라 빠진다)
     const startSet = new Set(owned.eggMoves.filter((m) => m.unlocked).map((m) => m.fid));
@@ -332,17 +365,18 @@ export class CandidateBuilder {
     const lists = {
       prio: onlyStart(prioMoves),
       setup: onlyStart(setupMoves),
+      defSetup: onlyStart(defSetup),
+      spdSetup: onlyStart(spdSetup),
       spread: onlyStart(spreadMoves),
       rec: onlyStart(recMoves),
       sup: onlyStart(supMoves),
     };
-    const bulkSide = hpS * defS >= hpS * spdS ? "def" : "spd";
     const builds = Object.fromEntries(
       ROLES.map((r) => [
         r,
         {
           moveset: this.pickMoveset(r, types, offenseStat, activeAbilities, startList, lists),
-          nature: this.pickNature(owned.natures, offenseStat, r, bulkSide),
+          nature: this.pickNature(owned.natures, offenseStat, r),
         },
       ]),
     ) as Candidate["builds"];
@@ -350,8 +384,8 @@ export class CandidateBuilder {
       ? builds[primaryRole].moveset
       : this.pickMoveset(null, types, offenseStat, activeAbilities, startList, lists);
     const abilityWhy =
-      focus === "tank"
-        ? "막이 역할: 받는 피해를 줄이는 특성"
+      isTank(focus)
+        ? `${ROLE_NAMES[focus]} 역할: 받는 피해를 줄이는 특성`
         : focus === "support"
           ? "서포터 역할: 보조에 도움이 되는 특성"
           : this.abilityValue(ability.fid, passiveActive ? passiveFid : null, "offense") > 0
@@ -372,7 +406,7 @@ export class CandidateBuilder {
     if (lockedEgg.length) notes.push(`알기술 미해금: ${lockedEgg.map((m) => m.name).join(", ")}`);
     quality += owned.ivTotal * w.ivPerPoint;
     quality += owned.luck * w.luckPerPoint;
-    const nature = primaryRole ? builds[primaryRole].nature : this.pickNature(owned.natures, offenseStat, null, bulkSide);
+    const nature = primaryRole ? builds[primaryRole].nature : this.pickNature(owned.natures, offenseStat, null);
     if (nature) quality += w.goodNature;
     else notes.push(`추천 성격(${offenseStat === "atk" ? "고집·명랑" : "조심·겁쟁이"}) 미해금`);
 
@@ -424,7 +458,10 @@ export class CandidateBuilder {
     let s = (cfg.offenseAbilities.get(fid) ?? 0) * (focus === "offense" ? 1 : 0.3);
     const drawback = cfg.drawbackAbilities.get(fid);
     if (drawback != null) s -= 10 * (1 - drawback);
-    if (cfg.abilityEffects.has(fid)) s += focus === "tank" ? 4 : 1;
+    if (cfg.abilityEffects.has(fid)) s += isTank(focus) ? 4 : 1;
+    if (focus === "physTank" && cfg.physTankAbilities.has(fid)) s += 4;
+    if (focus === "specTank" && cfg.specTankAbilities.has(fid)) s += 4;
+    if (isTank(focus) && cfg.healAbilities.has(fid)) s += 4;
     if (cfg.supportAbilities.has(fid)) s += focus === "support" ? 4 : 1;
     if (passive != null) s += this.synergy([fid, passive]).bonus;
     if (passive === fid) s -= 5; // 패시브와 같은 특성은 의미 없음
@@ -522,21 +559,21 @@ export class CandidateBuilder {
 
   /**
    * 해금된 성격 중 역할에 맞는 것. 안 쓰는 공격 능력치를 깎는 성격만 본다.
-   * 선공형·서포터는 스피드, 스위퍼·다대다는 화력, 막이는 주 내구(방어/특방)를 먼저 찾는다.
+   * 선공형·서포터는 스피드, 스위퍼·다대다는 화력, 물리막이는 방어, 특수막이는 특방을 먼저 찾는다.
    */
   private pickNature(
     natures: number[],
     offenseStat: "atk" | "spa",
     role: Role | null,
-    bulkSide: "def" | "spd",
   ): { index: number; name: string; why: string } | null {
+    const bulkSide = role === "specTank" ? "spd" : "def";
     const main = offenseStat === "atk" ? STAT_INDEX.atk : STAT_INDEX.spa;
     const dump = offenseStat === "atk" ? STAT_INDEX.spa : STAT_INDEX.atk;
     const bulk = STAT_INDEX[bulkSide];
     const order =
       role === "fast" || role === "support"
         ? [STAT_INDEX.spe, main]
-        : role === "tank"
+        : isTank(role)
           ? [bulk, main, STAT_INDEX.spe]
           : [main, STAT_INDEX.spe];
     const label: Record<number, string> = {
@@ -568,7 +605,15 @@ export class CandidateBuilder {
     offenseStat: "atk" | "spa",
     abilities: number[],
     moveList: MoveEntry[],
-    lists: { prio: MoveEntry[]; setup: MoveEntry[]; spread: MoveEntry[]; rec: MoveEntry[]; sup: MoveEntry[] },
+    lists: {
+      prio: MoveEntry[];
+      setup: MoveEntry[];
+      defSetup: MoveEntry[];
+      spdSetup: MoveEntry[];
+      spread: MoveEntry[];
+      rec: MoveEntry[];
+      sup: MoveEntry[];
+    },
   ): MovePick[] {
     const { cfg, dex } = this;
     const mainCat = offenseStat === "atk" ? 0 : 1;
@@ -626,8 +671,10 @@ export class CandidateBuilder {
         stab();
         coverage();
         break;
-      case "tank":
+      case "physTank":
+      case "specTank":
         add(first(lists.rec), "회복기");
+        add(first(role === "physTank" ? lists.defSetup : lists.spdSetup), role === "physTank" ? "방어 랭크업" : "특방 랭크업");
         stab();
         add(first(lists.sup), "보조기");
         break;

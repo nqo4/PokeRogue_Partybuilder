@@ -11,7 +11,7 @@ import { ShinyTiers } from "./ShinyTiers";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { useOfficial } from "./OfficialContext";
 import { howToGet } from "../lib/obtain";
-import { ItemIcon } from "./ItemIcon";
+import { ItemIcon, ItemText } from "./ItemIcon";
 import { CostValue } from "./CostValue";
 import { CandyIcon } from "./CandyIcon";
 import { friendshipCap } from "../lib/rules";
@@ -60,7 +60,9 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
         {h.items.map((it) => (
           <ItemIcon key={it} item={it} size={24} />
         ))}
-        <span>{h.text}</span>
+        <span>
+          <ItemText text={h.text} items={h.items} />
+        </span>
       </div>
     ));
   const myEvo = howToGet(species, dex, official);

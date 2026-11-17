@@ -197,7 +197,12 @@ test("export party builder data", async () => {
   } catch {
     console.warn("starter-colors.json 이 없어 사탕 색 없이 진행합니다.");
   }
-  const itemSprites: Record<string, { x: number; y: number; w: number; h: number; ox: number; oy: number; sw: number; sh: number; name: string }> = {};
+  const itemSprites: Record<string, { x: number; y: number; w: number; h: number; ox: number; oy: number; sw: number; sh: number; name: string; tier: string }> = {};
+  // 아이템 등급: 게임 상점 풀과 같은 규칙 (modifier-type.ts 의 EvolutionItem/FormChangeItem 생성기)
+  //  진화 아이템: 번호 50 이하는 슈퍼(EVOLUTION_ITEM), 50 초과는 하이퍼(RARE_EVOLUTION_ITEM)
+  //  폼 변화 아이템: 번호 150 미만(메가스톤 등)은 로그(RARE_FORM_CHANGE_ITEM), 150 이상은 하이퍼(FORM_CHANGE_ITEM)
+  const itemTier = (evo: number | undefined, form: number | undefined) =>
+    evo != null ? (evo > 50 ? "ultra" : "great") : form != null ? (form < 150 ? "rogue" : "ultra") : "common";
   const atlasPath = join(ROOT, "..", "pokerogue-assets", "images", "items.json");
   let itemAtlas: { w: number; h: number } | null = null;
   try {
@@ -206,14 +211,15 @@ test("export party builder data", async () => {
     for (const fr of atlas.textures[0].frames) {
       if (!itemKeys.has(fr.filename)) continue;
       const key = fr.filename as string;
-      const evoName = (EvolutionItem as unknown as Record<string, number>)[key.toUpperCase()] != null
-        ? t(`modifierType:EvolutionItem.${key.toUpperCase()}`) : "";
-      const formName = (FormChangeItem as unknown as Record<string, number>)[key.toUpperCase()] != null
-        ? t(`modifierType:FormChangeItem.${key.toUpperCase()}`) : "";
+      const evoNo = (EvolutionItem as unknown as Record<string, number>)[key.toUpperCase()];
+      const formNo = (FormChangeItem as unknown as Record<string, number>)[key.toUpperCase()];
+      const evoName = evoNo != null ? t(`modifierType:EvolutionItem.${key.toUpperCase()}`) : "";
+      const formName = formNo != null ? t(`modifierType:FormChangeItem.${key.toUpperCase()}`) : "";
       itemSprites[key] = {
         x: fr.frame.x, y: fr.frame.y, w: fr.frame.w, h: fr.frame.h,
         ox: fr.spriteSourceSize.x, oy: fr.spriteSourceSize.y, sw: fr.sourceSize.w, sh: fr.sourceSize.h,
         name: evoName || formName || key,
+        tier: itemTier(evoNo, formNo),
       };
     }
   } catch {

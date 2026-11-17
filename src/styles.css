@@ -175,7 +175,8 @@ button.primary:disabled { opacity: 0.6; cursor: wait; }
 .role-fast { color: var(--c-red); }
 .role-sweeper { color: var(--c-orange); }
 .role-multi { color: var(--c-teal); }
-.role-tank { color: var(--c-blue); }
+.role-physTank { color: var(--c-blue); }
+.role-specTank { color: var(--c-gold); }
 .role-support { color: var(--c-purple); }
 .label { color: var(--muted); margin-right: 2px; }
 .reasons { margin: 4px 0; padding-left: 16px; }
@@ -661,3 +662,11 @@ tr.current > td { background: var(--hover); }
 .contact-error { margin: 0; color: var(--c-red); }
 .contact-done { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .contact-done button { padding: 5px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; cursor: pointer; }
+
+/* 아이템 이름: 게임 상점 등급 색. 흰색·노랑도 밝은 배경에서 보이도록 게임처럼 어두운 바탕 위에 쓴다 */
+.item-name { padding: 0 5px; border-radius: 4px; background: #2a2d36; font-weight: 700; white-space: nowrap; }
+.item-name.tier-common { color: #f8f8f8; }
+.item-name.tier-great { color: #4998f8; }
+.item-name.tier-ultra { color: #f8d038; }
+.item-name.tier-rogue { color: #db4343; }
+.item-name.tier-master { color: #e331c5; }

@@ -22,10 +22,16 @@ const ROLES: { key: keyof typeof ROLE_NAMES; what: string; how: string; examples
     examples: "분화 그란돈, 스킬링크 연속기 포켓몬",
   },
   {
-    key: "tank",
-    what: "공격을 버티면서 시간을 버는 포켓몬. 파티의 약점 타입을 받아 줍니다.",
-    how: `HP×방어 또는 HP×특방이 ${classic.tank.minBulkProduct.toLocaleString()} 이상. 회복기가 있으면 더 높게 봅니다`,
-    examples: "크레세리아, 레지아이스, 맘복치",
+    key: "physTank",
+    what: "물리 공격을 버티면서 시간을 버는 포켓몬. 파티의 약점 타입을 받아 줍니다.",
+    how: `HP×방어가 ${classic.tank.minBulkProduct.toLocaleString()} 이상, 철가시·까칠한피부·퍼코트·복슬복슬 같은 방어·접촉기 특성, 또는 철벽·녹기·코튼가드 같은 방어 랭크업 기술. 회복기나 재생력·포이즌힐 같은 회복 특성이 있으면 더 높게 봅니다`,
+    examples: "보스로라, 강철톤, 야도란",
+  },
+  {
+    key: "specTank",
+    what: "특수 공격을 버티면서 시간을 버는 포켓몬.",
+    how: `HP×특방이 ${classic.tank.minBulkProduct.toLocaleString()} 이상, 얼음인분 같은 특수 방어 특성, 또는 망각술·코스믹파워 같은 특방 랭크업 기술. 회복기나 재생력·포이즌힐 같은 회복 특성이 있으면 더 높게 봅니다`,
+    examples: "크레세리아, 레지아이스, 해피너스",
   },
   {
     key: "support",

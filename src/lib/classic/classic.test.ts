@@ -114,7 +114,7 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     const sweeper = all.find((c) => c.primaryRole === "sweeper" && c.moveset.some((m) => m.why === "랭크업"));
     expect(sweeper?.moveset[0].why).toBe("랭크업");
     // 회복기가 있는 막이는 첫 칸이 회복기
-    const tank = all.find((c) => c.primaryRole === "tank" && cfg.recoveryMoves.has(c.moveset[0]?.fid));
+    const tank = all.find((c) => (c.primaryRole === "physTank" || c.primaryRole === "specTank") && cfg.recoveryMoves.has(c.moveset[0]?.fid));
     if (tank) expect(tank.moveset[0].why).toBe("회복기");
   });
 
@@ -146,5 +146,31 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   it("지정한 포켓몬을 반드시 포함한다", () => {
     const [r] = rec.recommend({ onlyUncleared: true, required: [287], count: 1 });
     expect(r.analysis.members.some((m) => m.owned.speciesId === 287)).toBe(true);
+  });
+});
+
+describe.skipIf(!savePath)("물리막이·특수막이", () => {
+  const summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
+  const rec = new ClassicRecommender(dex, summary.starters);
+  const byName = (n: string) => rec.candidates.find((c) => c.form.name === n);
+
+  it("방어가 높은 포켓몬은 물리막이, 특방이 높은 포켓몬은 특수막이", () => {
+    for (const n of ["보스로라", "강철톤"]) {
+      const c = byName(n);
+      if (c) expect(c.roles.physTank.score, n).toBeGreaterThanOrEqual(0.5);
+    }
+    for (const n of ["크레세리아", "해피너스"]) {
+      const c = byName(n);
+      if (c) expect(c.roles.specTank.score, n).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+
+  it("재생력·포이즌힐 같은 회복 특성은 막이 점수를 올린다", () => {
+    const cfg = resolveConfig(dex);
+    const healers = rec.candidates.filter(
+      (c) => c.activeAbilities.some((x) => cfg.healAbilities.has(x)) && c.roles.physTank.score > 0,
+    );
+    expect(healers.length).toBeGreaterThan(0);
+    for (const c of healers) expect(c.roles.physTank.reasons.some((r) => r.text === "회복 특성"), c.form.name).toBe(true);
   });
 });
