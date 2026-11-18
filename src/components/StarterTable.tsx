@@ -22,15 +22,15 @@ const SORTS: [SortKey, string][] = [
 ];
 
 /** 폼 변화 필터: Dex 의 form 값 (1 메가, 2 신규 메가, 3 거다이맥스, 4 변형) */
-type FormFilter = "all" | "any" | "mega" | "gmax" | "other";
-const FORM_FILTERS: [FormFilter, string][] = [
+export type FormFilter = "all" | "any" | "mega" | "gmax" | "other";
+export const FORM_FILTERS: [FormFilter, string][] = [
   ["all", "폼 변화: 전체"],
   ["any", "폼 변화 가능 전부"],
   ["mega", "메가진화 가능"],
   ["gmax", "거다이맥스 가능"],
   ["other", "기타 폼 변화 가능"],
 ];
-const formMatch = (family: DexSpecies[], f: FormFilter) => {
+export const formMatch = (family: DexSpecies[], f: FormFilter) => {
   if (f === "all") return true;
   return family.some((s) =>
     f === "any" ? s.form >= 1 && s.form <= 4 : f === "mega" ? s.form === 1 || s.form === 2 : f === "gmax" ? s.form === 3 : s.form === 4,

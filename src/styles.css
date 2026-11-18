@@ -695,3 +695,7 @@ tr.current > td { background: var(--hover); }
 .search-detail h3 { margin: 12px 0 6px; font-size: 0.95rem; }
 .search-users { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
 .search-user { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px; border-radius: 8px; background: var(--hover); text-align: center; word-break: keep-all; }
+
+/* 파티 만들기: 해금 조건 묶음 */
+.unlock-filters { gap: 6px 14px; }
+.unlock-item { display: inline-flex; align-items: center; gap: 6px; }

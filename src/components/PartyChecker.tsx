@@ -12,13 +12,24 @@ import { Sprite } from "./Sprite";
 import { CostValue } from "./CostValue";
 import { SearchInput } from "./SearchInput";
 import { PartyCard } from "./ClassicRecommender";
+import { FORM_FILTERS, formMatch, type FormFilter } from "./StarterTable";
 
 const PARTY_MAX = 6;
 
 /** 게임 스타터 화면의 필터와 같은 묶음. 알 구매·사탕 수·개체값·포획/부화 횟수는 뺐다 */
 type ShinyFilter = "all" | "t3" | "t2" | "t1" | "none";
-type UnlockFilter = "all" | "passive" | "noPassive" | "reduced" | "notReduced";
-type EtcFilter = "all" | "cleared" | "uncleared" | "hidden" | "noHidden" | "pokerus";
+/** 해금 조건 하나: 상관없음 / 해금함 / 안 함 */
+type Tri = "all" | "yes" | "no";
+const triOk = (t: Tri, v: boolean) => t === "all" || (t === "yes") === v;
+type UnlockKey = "passive" | "reduced" | "hidden";
+const UNLOCKS: [UnlockKey, string][] = [
+  ["passive", "패시브"],
+  ["reduced", "코스트 감소"],
+  ["hidden", "숨겨진 특성"],
+];
+/** 진화·폼까지 포함한 가족 중 아직 못 잡은 형태 */
+type DexFilter = "all" | "complete" | "seen" | "unseen";
+type EtcFilter = "all" | "cleared" | "uncleared" | "pokerus";
 type SortKey = "id" | "cost" | "name";
 
 /** 오늘(UTC) 날짜 "YYYY-MM-DD". 게임의 포켓러스는 UTC 자정에 바뀐다 */
@@ -43,7 +54,9 @@ export function PartyChecker({
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
   const [shiny, setShiny] = useState<ShinyFilter>("all");
-  const [unlock, setUnlock] = useState<UnlockFilter>("all");
+  const [unlock, setUnlock] = useState<Record<UnlockKey, Tri>>({ passive: "all", reduced: "all", hidden: "all" });
+  const [form, setForm] = useState<FormFilter>("all");
+  const [dexState, setDexState] = useState<DexFilter>("all");
   const [etc, setEtc] = useState<EtcFilter>("all");
   const [sort, setSort] = useState<SortKey>("id");
   const [desc, setDesc] = useState(false);
@@ -65,17 +78,19 @@ export function PartyChecker({
     const shinyOk = (m: number) =>
       shiny === "all" || (shiny === "none" ? m === 0 : !!(m & (shiny === "t3" ? 4 : shiny === "t2" ? 2 : 1)));
     const unlockOk = (c: Candidate) =>
-      unlock === "all" ||
-      (unlock === "passive" && c.owned.passive.unlocked) ||
-      (unlock === "noPassive" && !c.owned.passive.unlocked) ||
-      (unlock === "reduced" && c.owned.costReductions > 0) ||
-      (unlock === "notReduced" && c.owned.costReductions === 0);
+      triOk(unlock.passive, c.owned.passive.unlocked) &&
+      triOk(unlock.reduced, c.owned.costReductions > 0) &&
+      // 숨겨진 특성이 없는 포켓몬은 "미해금"으로 치지 않는다
+      (unlock.hidden === "all" || (!!c.owned.abilities.hidden && triOk(unlock.hidden, c.owned.abilities.hidden.unlocked)));
+    const dexOk = (c: Candidate) => {
+      if (dexState === "all") return true;
+      const st = c.owned.family.map((f) => c.owned.formStatus[f.idx]);
+      return dexState === "complete" ? st.every((s) => s === "caught") : st.includes(dexState);
+    };
     const etcOk = (c: Candidate) =>
       etc === "all" ||
       (etc === "cleared" && c.owned.classicWins > 0) ||
       (etc === "uncleared" && c.owned.classicWins === 0) ||
-      (etc === "hidden" && !!c.owned.abilities.hidden?.unlocked) ||
-      (etc === "noHidden" && !!c.owned.abilities.hidden && !c.owned.abilities.hidden.unlocked) ||
       (etc === "pokerus" && pokerus.includes(c.owned.speciesId));
     const dir = desc ? -1 : 1;
     const value = (c: Candidate) => (sort === "cost" ? c.owned.cost : c.owned.speciesId);
@@ -86,6 +101,8 @@ export function PartyChecker({
           (type < 0 || c.owned.dex.types.includes(type)) &&
           shinyOk(c.owned.shinyTiers) &&
           unlockOk(c) &&
+          formMatch(c.owned.family, form) &&
+          dexOk(c) &&
           etcOk(c) &&
           (!q || c.owned.name.includes(q) || c.owned.family.some((f) => f.name.includes(q))),
       )
@@ -94,7 +111,7 @@ export function PartyChecker({
           ? a.owned.name.localeCompare(b.owned.name, "ko") * dir
           : (value(a) - value(b)) * dir || a.owned.speciesId - b.owned.speciesId,
       );
-  }, [recommender, query, gen, type, shiny, unlock, etc, sort, desc, pokerus]);
+  }, [recommender, query, gen, type, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
 
   /** 넣을 수 없는 이유 (넣을 수 있으면 null) */
   const blocked = (c: Candidate): string | null =>
@@ -224,19 +241,23 @@ export function PartyChecker({
           <option value="t1">1럭 보유</option>
           <option value="none">기본 (이로치 없음)</option>
         </select>
-        <select value={unlock} onChange={(e) => setUnlock(e.target.value as UnlockFilter)} aria-label="해금">
-          <option value="all">해금: 전체</option>
-          <option value="passive">패시브 해금</option>
-          <option value="noPassive">패시브 미해금</option>
-          <option value="reduced">코스트 감소함</option>
-          <option value="notReduced">코스트 감소 안 함</option>
+        <select value={form} onChange={(e) => setForm(e.target.value as FormFilter)} aria-label="폼 변화">
+          {FORM_FILTERS.map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <select value={dexState} onChange={(e) => setDexState(e.target.value as DexFilter)} aria-label="도감 상태">
+          <option value="all">도감 상태: 전체</option>
+          <option value="complete">모든 형태 해금</option>
+          <option value="seen">미해금 형태 있음 (발견만)</option>
+          <option value="unseen">미발견 형태 있음</option>
         </select>
         <select value={etc} onChange={(e) => setEtc(e.target.value as EtcFilter)} aria-label="기타">
           <option value="all">기타: 전체</option>
           <option value="cleared">클래식 클리어</option>
           <option value="uncleared">클래식 미클리어</option>
-          <option value="hidden">숨겨진 특성 해금</option>
-          <option value="noHidden">숨겨진 특성 미해금</option>
           <option value="pokerus">포켓러스 (고른 날짜)</option>
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="정렬">
@@ -249,6 +270,26 @@ export function PartyChecker({
           <option value="desc">내림차순</option>
         </select>
         <span className="muted">{list.length}종</span>
+      </div>
+      <div className="filters unlock-filters" role="group" aria-label="해금">
+        <span className="label">해금</span>
+        {UNLOCKS.map(([k, l]) => (
+          <span key={k} className="unlock-item">
+            {l}
+            <span className="view-toggle" role="group" aria-label={l} style={{ marginLeft: 0 }}>
+              {(["all", "yes", "no"] as const).map((t) => (
+                <button
+                  key={t}
+                  className={unlock[k] === t ? "active" : ""}
+                  aria-pressed={unlock[k] === t}
+                  onClick={() => setUnlock({ ...unlock, [k]: t })}
+                >
+                  {t === "all" ? "전체" : t === "yes" ? "O" : "X"}
+                </button>
+              ))}
+            </span>
+          </span>
+        ))}
       </div>
 
       <div className="pokerus-bar">
