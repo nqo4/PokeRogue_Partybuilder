@@ -512,6 +512,7 @@ tr.current > td { background: var(--hover); }
   background: var(--hover);
 }
 .strip-position.unfit { color: var(--muted); font-weight: 600; border: 1px dashed var(--border); background: none; }
+.strip-position.free { color: var(--muted); font-weight: 600; border: 1px solid var(--border); background: var(--hover); }
 .role.assigned { outline: 2px solid currentColor; outline-offset: -2px; }
 .egg-tag { margin-left: 4px; padding: 0 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: var(--c-teal); border: 1px solid currentColor; }
 
@@ -699,3 +700,4 @@ tr.current > td { background: var(--hover); }
 /* 파티 만들기: 해금 조건 묶음 */
 .unlock-filters { gap: 6px 14px; }
 .unlock-item { display: inline-flex; align-items: center; gap: 6px; }
+.carry-chip select { padding: 2px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }

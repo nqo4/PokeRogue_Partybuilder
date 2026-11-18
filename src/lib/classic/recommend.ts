@@ -4,7 +4,7 @@ import type { OwnedStarter } from "../starters";
 import { buildTypeMatrix, type TypeMatrix } from "../typeChart";
 import { CandidateBuilder, type Candidate } from "./candidate";
 import { resolveConfig, type ClassicConfig, type ResolvedConfig } from "./config";
-import { ROLE_THRESHOLD, analyzeParty, type PartyAnalysis } from "./party";
+import { ROLE_THRESHOLD, analyzeParty, type FixedPosition, type PartyAnalysis } from "./party";
 
 export interface RecommendOptions {
   /** 클래식 미클리어 포켓몬만 후보로 쓴다 */
@@ -15,6 +15,8 @@ export interface RecommendOptions {
   maxFormChange?: number;
   /** 반드시 넣을 포켓몬 (SpeciesId) */
   required?: number[];
+  /** 고정 포켓몬(SpeciesId)별로 정한 포지션. 없으면 점수대로 배정 */
+  fixedPositions?: Record<number, FixedPosition>;
   /** 이미 보여준 파티 (partyKey). 이 파티들과 겹치지 않는 새 파티를 찾는다 */
   exclude?: string[];
   /** 돌려줄 파티 수 */
@@ -66,8 +68,8 @@ export class ClassicRecommender {
     return this.byId.get(speciesId);
   }
 
-  analyze(members: Candidate[]): PartyAnalysis {
-    return analyzeParty(members, this.dex, this.cfg, this.chart);
+  analyze(members: Candidate[], fixed?: Map<Candidate, FixedPosition>): PartyAnalysis {
+    return analyzeParty(members, this.dex, this.cfg, this.chart, fixed);
   }
 
   recommend(opts: RecommendOptions): PartyRecommendation[] {
@@ -78,6 +80,11 @@ export class ClassicRecommender {
     const beamWidth = opts.beamWidth ?? 60;
     const required = (opts.required ?? []).map((id) => this.byId.get(id)).filter((c): c is Candidate => !!c);
     const requiredIds = new Set(required.map((c) => c.owned.speciesId));
+    const fixed = new Map<Candidate, FixedPosition>();
+    for (const c of required) {
+      const f = opts.fixedPositions?.[c.owned.speciesId];
+      if (f) fixed.set(c, f);
+    }
     const pool = this.candidates.filter(
       (c) =>
         !requiredIds.has(c.owned.speciesId) &&
@@ -92,7 +99,7 @@ export class ClassicRecommender {
       cost: members.reduce((a, m) => a + m.owned.cost, 0),
       forms: members.filter(hasFormChange).length,
       key: partyKey(members),
-      analysis: this.analyze(members),
+      analysis: this.analyze(members, fixed),
     });
 
     const seen = new Map<string, State>();
@@ -148,8 +155,8 @@ export class ClassicRecommender {
     return picked.map((s) => ({
       key: s.key,
       // 표시 순서대로 다시 분석해서 멤버별 정보(역할·상성표)의 순서를 맞춘다
-      analysis: this.analyze(sortMembers(s.members)),
-      suggestions: this.suggest(s.members, pool, size, maxForm, 3, new Set(required)),
+      analysis: this.analyze(sortMembers(s.members), fixed),
+      suggestions: this.suggest(s.members, pool, size, maxForm, 3, new Set(required), fixed),
     }));
   }
 
@@ -164,9 +171,10 @@ export class ClassicRecommender {
     maxForm: number,
     limit = 3,
     fixed: Set<Candidate> = new Set(),
+    positions?: Map<Candidate, FixedPosition>,
   ): Suggestion[] {
     const { costLimit } = this.cfg.raw;
-    const base = this.analyze(members);
+    const base = this.analyze(members, positions);
     const danger = base.dangerTypes.slice(0, 4);
     if (!danger.length) return [];
     const cost = base.cost;
@@ -180,13 +188,13 @@ export class ClassicRecommender {
       let best: Suggestion | null = null;
       let bestFixed: Suggestion | null = null;
       if (members.length < size && cost + c.owned.cost <= costLimit && (!hasFormChange(c) || forms < maxForm)) {
-        const a = this.analyze([...members, c]);
+        const a = this.analyze([...members, c], positions);
         best = { candidate: c, replace: null, covers, scoreDelta: a.score - base.score };
       }
       for (const m of members) {
         if (cost - m.owned.cost + c.owned.cost > costLimit) continue;
         if (hasFormChange(c) && !hasFormChange(m) && forms >= maxForm) continue;
-        const a = this.analyze(members.map((x) => (x === m ? c : x)));
+        const a = this.analyze(members.map((x) => (x === m ? c : x)), positions);
         if (!a.hasAttacker) continue;
         const d = a.score - base.score;
         if (fixed.has(m)) {

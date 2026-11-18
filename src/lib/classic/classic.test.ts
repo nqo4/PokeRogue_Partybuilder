@@ -65,6 +65,20 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     for (const r of rs) expect(r.analysis.members).toContain(carry);
   });
 
+  it("고정 포켓몬에 정한 포지션(역할 없음 포함)을 그대로 쓴다", () => {
+    const carry = rec.candidates.find((c) => c.owned.cost <= 3)!;
+    const id = carry.owned.speciesId;
+    const [tank] = rec.recommend({ onlyUncleared: true, required: [id], fixedPositions: { [id]: "specTank" }, count: 1 });
+    const i = tank.analysis.members.indexOf(carry);
+    expect(tank.analysis.positions[i]).toBe("specTank");
+    const [free] = rec.recommend({ onlyUncleared: true, required: [id], fixedPositions: { [id]: "free" }, count: 1 });
+    const j = free.analysis.members.indexOf(carry);
+    expect(free.analysis.positions[j]).toBeNull();
+    expect(free.analysis.free[j]).toBe(true);
+    // 역할 없는 포켓몬을 빼고도 공격 역할이 있어야 한다
+    expect(free.analysis.hasAttacker).toBe(true);
+  });
+
   it("보완 후보는 캐리몬을 바꾸지 않는다 (다른 후보가 없을 때만 표시와 함께 바꾼다)", () => {
     const meditite = rec.candidates.find((c) => c.owned.name === "요가랑");
     if (!meditite) return;

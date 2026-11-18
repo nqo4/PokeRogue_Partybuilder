@@ -15,7 +15,7 @@ export function findings(a: PartyAnalysis, costLimit: number, dex: Dex): Finding
   const names = (ms: Candidate[]) => ms.map((m) => m.form.name).join(", ");
 
   // "선공형이나 스위퍼가 없음"은 파티 분석(issues)이 이미 알려 준다
-  const unfit = a.members.filter((_, i) => a.positions[i] == null);
+  const unfit = a.members.filter((_, i) => a.positions[i] == null && !a.free[i]);
   if (unfit.length) {
     out.push({
       level: "warn",

@@ -4,7 +4,7 @@ import { typesInGameOrder, type Dex } from "../lib/dex";
 import type { OwnedStarter } from "../lib/starters";
 import { ROLES, ROLE_NAMES, type Candidate, type Reason } from "../lib/classic/candidate";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "../lib/classic/recommend";
-import type { PartyAnalysis } from "../lib/classic/party";
+import { ROLE_THRESHOLD, type FixedPosition, type PartyAnalysis } from "../lib/classic/party";
 import { Sprite } from "./Sprite";
 import { RouteSection } from "./RouteSection";
 import type { FormStatus } from "../lib/starters";
@@ -40,11 +40,14 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
   const [error, setError] = useState<string | null>(null);
   /** 캐리몬: 추천 파티에 반드시 넣을 포켓몬 (SpeciesId) */
   const [carries, setCarries] = useState<number[]>([]);
+  /** 고정 포켓몬별로 고른 포지션 (없으면 상관없음) */
+  const [carryRoles, setCarryRoles] = useState<Record<number, FixedPosition>>({});
   // 파티 만들기에서 "이 포켓몬으로 파티 만들기"를 누르면 그 파티가 캐리몬이 된다
   const [lastFocus, setLastFocus] = useState(focus);
   if (focus !== lastFocus) {
     setLastFocus(focus);
     setCarries(focus?.ids ?? []);
+    setCarryRoles({});
     setResults(null);
     setShown([]);
     setRound(0);
@@ -76,7 +79,14 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
     // 계산 전에 "계산 중" 표시가 먼저 그려지도록 한 틱 미룬다
     setTimeout(() => {
       try {
-        const rs = recommender.recommend({ onlyUncleared, partySize, maxFormChange, exclude, required: carries });
+        const rs = recommender.recommend({
+          onlyUncleared,
+          partySize,
+          maxFormChange,
+          exclude,
+          required: carries,
+          fixedPositions: carryRoles,
+        });
         setResults(rs);
         setShown([...exclude, ...rs.map((r) => r.key)]);
         setRound(fresh ? 1 : round + 1);
@@ -163,6 +173,27 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
             <span key={id} className="carry-chip">
               <Sprite species={c.owned.dex} size={28} />
               {c.owned.name}
+              <select
+                aria-label={`${c.owned.name} 포지션`}
+                value={carryRoles[id] ?? "any"}
+                onChange={(e) => {
+                  const v = e.target.value as FixedPosition | "any";
+                  const next = { ...carryRoles };
+                  if (v === "any") delete next[id];
+                  else next[id] = v;
+                  setCarryRoles(next);
+                  reset();
+                }}
+              >
+                <option value="any">포지션: 상관없음</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_NAMES[r]}
+                    {c.roles[r].score < ROLE_THRESHOLD ? " (기준 미달)" : ""}
+                  </option>
+                ))}
+                <option value="free">역할 없음 (클리어·럭 채우기)</option>
+              </select>
               <button
                 aria-label={`${c.owned.name} 빼기`}
                 onClick={() => {
@@ -276,8 +307,8 @@ export function PartyCard({
                 코스트 <CostValue cost={m.owned.cost} reductions={m.owned.costReductions} />
                 {m.owned.luck > 0 && <span className={`luck luck-${m.owned.luck}`}>럭 {m.owned.luck}</span>}
               </span>
-              <span className={`strip-position${a.positions[i] ? ` role-${a.positions[i]}` : " unfit"}`}>
-                {a.positions[i] ? ROLE_NAMES[a.positions[i]!] : "포지션 겹침"}
+              <span className={`strip-position${a.positions[i] ? ` role-${a.positions[i]}` : a.free[i] ? " free" : " unfit"}`}>
+                {a.positions[i] ? ROLE_NAMES[a.positions[i]!] : a.free[i] ? "역할 없음" : "포지션 겹침"}
               </span>
             </button>
           </li>
@@ -316,7 +347,9 @@ export function PartyCard({
 
       <p className="party-roles small muted">
         포지션: {ROLES.filter((r) => a.roleCoverage[r]).map((r) => `${ROLE_NAMES[r]} ${a.roleCoverage[r]}`).join(" · ")}
-        {a.positions.some((p) => p == null) && ` · 겹침 ${a.positions.filter((p) => p == null).length}마리`}
+        {a.free.some(Boolean) && ` · 역할 없음 ${a.free.filter(Boolean).length}마리`}
+        {a.positions.some((p, i) => p == null && !a.free[i]) &&
+          ` · 겹침 ${a.positions.filter((p, i) => p == null && !a.free[i]).length}마리`}
       </p>
 
       <TypeTable a={a} dex={dex} typeBadge={typeBadge} />
