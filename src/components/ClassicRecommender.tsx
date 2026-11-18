@@ -19,12 +19,16 @@ interface Props {
   dex: Dex;
   /** 보여줄 화면: 파티 추천 / 내 파티 점검 (둘이 같은 추천기를 쓴다) */
   mode: "recommend" | "check";
+  /** 파티 만들기에서 고른 포켓몬을 넘겨받아 파티 추천으로 간다 */
+  onBuildFrom: (ids: number[]) => void;
+  /** 넘겨받은 중심 포켓몬 (넘길 때마다 새 객체) */
+  focus: { ids: number[] } | null;
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
 const FORM_LIMITS = [0, 1, 2, 3, 4, 5, 6];
 
-export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
+export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFrom, focus }: Props) {
   const [onlyUncleared, setOnlyUncleared] = useState(true);
   const [partySize, setPartySize] = useState(6);
   const [maxFormChange, setMaxFormChange] = useState(6);
@@ -36,7 +40,15 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
   const [error, setError] = useState<string | null>(null);
   /** 캐리몬: 추천 파티에 반드시 넣을 포켓몬 (SpeciesId) */
   const [carries, setCarries] = useState<number[]>([]);
-  const [carryQuery, setCarryQuery] = useState("");
+  // 파티 만들기에서 "이 포켓몬으로 파티 만들기"를 누르면 그 파티가 캐리몬이 된다
+  const [lastFocus, setLastFocus] = useState(focus);
+  if (focus !== lastFocus) {
+    setLastFocus(focus);
+    setCarries(focus?.ids ?? []);
+    setResults(null);
+    setShown([]);
+    setRound(0);
+  }
 
   const recommender = useMemo(() => {
     try {
@@ -86,7 +98,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
     <section>
       {/* 두 화면을 모두 그려 두고 숨기기만 해서, 오가도 고른 파티·추천 결과가 남는다 */}
       <div hidden={mode !== "check"}>
-        {recommender && <PartyChecker recommender={recommender} dex={dex} status={status} typeBadge={typeBadge} />}
+        {recommender && <PartyChecker recommender={recommender} dex={dex} status={status} typeBadge={typeBadge} onBuildFrom={onBuildFrom} />}
       </div>
       <div hidden={mode !== "recommend"}>
       <div className="filters">
@@ -135,34 +147,15 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
         </label>
         <span className="muted">후보 {poolSize}종 · 코스트 10 이하</span>
       </div>
-      <div className="filters carry-bar">
-        <label>
-          캐리몬{" "}
-          <input
-            list="carry-options"
-            value={carryQuery}
-            placeholder={carries.length >= partySize ? "파티가 가득 찼습니다" : "꼭 넣을 포켓몬 이름"}
-            disabled={carries.length >= partySize}
-            onChange={(e) => {
-              const v = e.target.value;
-              const hit = recommender?.candidates.find((c) => c.owned.name === v.trim());
-              if (hit && !carries.includes(hit.owned.speciesId)) {
-                setCarries([...carries, hit.owned.speciesId]);
-                setCarryQuery("");
-                reset();
-              } else setCarryQuery(v);
-            }}
-          />
-        </label>
-        <datalist id="carry-options">
-          {recommender?.candidates
-            .filter((c) => !carries.includes(c.owned.speciesId))
-            .map((c) => (
-              <option key={c.owned.speciesId} value={c.owned.name}>
-                코스트 {c.owned.cost}
-              </option>
-            ))}
-        </datalist>
+      {carries.length > 0 && (
+      <div className="carry-bar">
+        <p>
+          <b>이 포켓몬을 중심으로 파티를 선택합니다</b>{" "}
+          <span className="muted small">
+            나머지 {Math.max(partySize - carries.length, 0)}자리는 아래 조건으로 추천합니다
+          </span>
+        </p>
+        <div className="filters">
         {carries.map((id) => {
           const c = recommender?.candidate(id);
           if (!c) return null;
@@ -182,13 +175,23 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
             </span>
           );
         })}
-        {carries.length > 0 && (
-          <span className={carryCost > 10 ? "error small" : "muted small"}>
-            캐리몬 코스트 {carryCost}
-            {carryCost > 10 ? " · 10을 넘어서 파티를 만들 수 없습니다" : ` · 남은 코스트 ${10 - carryCost}`}
-          </span>
-        )}
+        <span className={carryCost > 10 ? "error small" : "muted small"}>
+          코스트 {carryCost}
+          {carryCost > 10 ? " · 10을 넘어서 파티를 만들 수 없습니다" : ` · 남은 코스트 ${10 - carryCost}`}
+        </span>
+        {carries.length > partySize && <span className="error small">파티 수보다 많습니다</span>}
+        <button
+          className="link-button"
+          onClick={() => {
+            setCarries([]);
+            reset();
+          }}
+        >
+          중심 포켓몬 해제
+        </button>
+        </div>
       </div>
+      )}
       <div className="filters">
         <button className="primary" onClick={() => run(!results)} disabled={busy || !recommender}>
           {busy ? "계산 중…" : results ? "다른 파티 추천" : "추천 파티 만들기"}

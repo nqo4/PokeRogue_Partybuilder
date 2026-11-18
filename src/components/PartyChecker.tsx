@@ -29,11 +29,13 @@ export function PartyChecker({
   dex,
   status,
   typeBadge,
+  onBuildFrom,
 }: {
   recommender: ClassicRecommender;
   dex: Dex;
   status?: Record<number, FormStatus>;
   typeBadge: (fid: number) => JSX.Element;
+  onBuildFrom: (ids: number[]) => void;
 }) {
   const costLimit = recommender.cfg.raw.costLimit;
   const [picks, setPicks] = useState<number[]>([]);
@@ -160,6 +162,13 @@ export function PartyChecker({
         <span>{members.length}마리</span>
         <button className="primary" onClick={check} disabled={!members.length}>
           파티 점검
+        </button>
+        <button
+          onClick={() => onBuildFrom(picks)}
+          disabled={!members.length}
+          title="고른 포켓몬을 넣고 나머지 자리를 파티 추천으로 채웁니다"
+        >
+          이 포켓몬으로 파티 만들기
         </button>
         {members.length > 0 && (
           <button className="link-button" onClick={() => change([])}>

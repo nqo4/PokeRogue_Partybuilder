@@ -672,7 +672,9 @@ tr.current > td { background: var(--hover); }
 .item-name.tier-master { color: #e331c5; }
 
 /* 파티 추천: 캐리몬 */
-.carry-bar input { min-width: 180px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.carry-bar { margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--surface); }
+.carry-bar p { margin: 0 0 6px; }
+.carry-bar .filters { margin: 0; }
 .carry-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 2px; border: 1px solid var(--accent); border-radius: 999px; background: var(--surface); font-size: 0.9rem; }
 .carry-chip button { border: none; background: none; color: var(--muted); cursor: pointer; font: inherit; padding: 0 4px; }
 .carry-chip button:hover { color: var(--text); }
