@@ -29,6 +29,8 @@ export interface Suggestion {
   /** 이 포켓몬이 반감·무효로 받아주는 위험 타입 */
   covers: number[];
   scoreDelta: number;
+  /** 고정 포켓몬을 바꾸는 후보 (다른 후보가 없을 때만 나온다) */
+  replacesFixed?: boolean;
 }
 
 export interface PartyRecommendation {
@@ -147,12 +149,22 @@ export class ClassicRecommender {
       key: s.key,
       // 표시 순서대로 다시 분석해서 멤버별 정보(역할·상성표)의 순서를 맞춘다
       analysis: this.analyze(sortMembers(s.members)),
-      suggestions: this.suggest(s.members, pool, size, maxForm),
+      suggestions: this.suggest(s.members, pool, size, maxForm, 3, new Set(required)),
     }));
   }
 
-  /** 위험 타입을 받아줄 수 있는 교체 후보 (마리 수가 남으면 추가 후보도) */
-  suggest(members: Candidate[], pool: Candidate[], size: number, maxForm: number, limit = 3): Suggestion[] {
+  /**
+   * 위험 타입을 받아줄 수 있는 교체 후보 (마리 수가 남으면 추가 후보도).
+   * 고정 포켓몬(fixed)은 다른 후보가 하나도 없을 때만 교체 대상으로 삼고 replacesFixed 로 표시한다.
+   */
+  suggest(
+    members: Candidate[],
+    pool: Candidate[],
+    size: number,
+    maxForm: number,
+    limit = 3,
+    fixed: Set<Candidate> = new Set(),
+  ): Suggestion[] {
     const { costLimit } = this.cfg.raw;
     const base = this.analyze(members);
     const danger = base.dangerTypes.slice(0, 4);
@@ -160,11 +172,13 @@ export class ClassicRecommender {
     const cost = base.cost;
     const forms = members.filter(hasFormChange).length;
     const out: Suggestion[] = [];
+    const outFixed: Suggestion[] = [];
     for (const c of pool) {
       if (members.includes(c)) continue;
       const covers = danger.filter((t) => c.defense[t] < 1);
       if (!covers.length) continue;
       let best: Suggestion | null = null;
+      let bestFixed: Suggestion | null = null;
       if (members.length < size && cost + c.owned.cost <= costLimit && (!hasFormChange(c) || forms < maxForm)) {
         const a = this.analyze([...members, c]);
         best = { candidate: c, replace: null, covers, scoreDelta: a.score - base.score };
@@ -175,11 +189,15 @@ export class ClassicRecommender {
         const a = this.analyze(members.map((x) => (x === m ? c : x)));
         if (!a.hasAttacker) continue;
         const d = a.score - base.score;
-        if (!best || d > best.scoreDelta) best = { candidate: c, replace: m, covers, scoreDelta: d };
+        if (fixed.has(m)) {
+          if (!bestFixed || d > bestFixed.scoreDelta) bestFixed = { candidate: c, replace: m, covers, scoreDelta: d, replacesFixed: true };
+        } else if (!best || d > best.scoreDelta) best = { candidate: c, replace: m, covers, scoreDelta: d };
       }
       if (best && best.scoreDelta > 0) out.push(best);
+      if (bestFixed && bestFixed.scoreDelta > 0) outFixed.push(bestFixed);
     }
-    return out.sort((a, b) => b.scoreDelta - a.scoreDelta).slice(0, limit);
+    const byDelta = (a: Suggestion, b: Suggestion) => b.scoreDelta - a.scoreDelta;
+    return (out.length ? out : outFixed).sort(byDelta).slice(0, limit);
   }
 }
 

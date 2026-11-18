@@ -65,6 +65,18 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     for (const r of rs) expect(r.analysis.members).toContain(carry);
   });
 
+  it("보완 후보는 캐리몬을 바꾸지 않는다 (다른 후보가 없을 때만 표시와 함께 바꾼다)", () => {
+    const meditite = rec.candidates.find((c) => c.owned.name === "요가랑");
+    if (!meditite) return;
+    const rs = rec.recommend({ onlyUncleared: false, required: [meditite.owned.speciesId], count: 3 });
+    for (const r of rs) {
+      const fixed = r.suggestions.filter((s) => s.replace === meditite);
+      for (const s of fixed) expect(s.replacesFixed).toBe(true);
+      // 고정을 바꾸는 후보는 다른 후보와 섞이지 않는다
+      if (fixed.length) expect(r.suggestions.every((s) => s.replacesFixed)).toBe(true);
+    }
+  });
+
   it("모든 파티가 코스트 10 이하, 미클리어 포켓몬만, 공격 역할 1마리 이상", () => {
     for (const r of results) {
       const a = r.analysis;

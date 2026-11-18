@@ -339,6 +339,12 @@ export function PartyCard({
         </div>
         <div>
           <h3>보완 후보</h3>
+          {rec.suggestions.some((s) => s.replacesFixed) && (
+            <p className="error small">
+              고정 포켓몬을 그대로 두고 보완할 후보가 없어서 고정 포켓몬의 대안을 보여 줍니다. 바꾸지 않으면 파티의
+              안정성이 떨어질 수 있습니다.
+            </p>
+          )}
           {rec.suggestions.length ? (
             <ul>
               {rec.suggestions.map((s) => (
@@ -346,7 +352,7 @@ export function PartyCard({
                   <Sprite species={s.candidate.form} size={36} />
                   <span>
                     <b>{s.candidate.form.name}</b> (코스트 {s.candidate.owned.cost})
-                    {s.replace ? ` ↔ ${s.replace.form.name} 대신` : " 추가"} — {s.covers.map(typeBadge)} 반감·무효
+                    {s.replace ? ` ↔ ${s.replace.form.name}${s.replacesFixed ? "(고정)" : ""} 대신` : " 추가"} — {s.covers.map(typeBadge)} 반감·무효
                   </span>
                 </li>
               ))}
