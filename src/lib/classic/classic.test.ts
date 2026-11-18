@@ -58,6 +58,13 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     expect(results.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("캐리몬으로 지정한 포켓몬은 추천 파티마다 들어간다", () => {
+    const carry = rec.candidates.find((c) => c.owned.cost <= 3)!;
+    const rs = rec.recommend({ onlyUncleared: true, required: [carry.owned.speciesId], count: 3 });
+    expect(rs.length).toBeGreaterThan(0);
+    for (const r of rs) expect(r.analysis.members).toContain(carry);
+  });
+
   it("모든 파티가 코스트 10 이하, 미클리어 포켓몬만, 공격 역할 1마리 이상", () => {
     for (const r of results) {
       const a = r.analysis;

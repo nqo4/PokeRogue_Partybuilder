@@ -61,7 +61,7 @@ export function InfoProvider({ dex, children }: { dex: Dex; children: ReactNode 
   );
 }
 
-function InfoBody({ dex, fid }: { dex: Dex; fid: number }) {
+export function InfoBody({ dex, fid }: { dex: Dex; fid: number }) {
   const d = dex.data;
   const move = dex.isMove(fid) ? dex.move(fid) : undefined;
   const desc = dex.description(fid);

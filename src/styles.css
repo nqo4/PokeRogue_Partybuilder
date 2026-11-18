@@ -670,3 +670,26 @@ tr.current > td { background: var(--hover); }
 .item-name.tier-ultra { color: #f8d038; }
 .item-name.tier-rogue { color: #db4343; }
 .item-name.tier-master { color: #e331c5; }
+
+/* 파티 추천: 캐리몬 */
+.carry-bar input { min-width: 180px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.carry-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 2px; border: 1px solid var(--accent); border-radius: 999px; background: var(--surface); font-size: 0.9rem; }
+.carry-chip button { border: none; background: none; color: var(--muted); cursor: pointer; font: inherit; padding: 0 4px; }
+.carry-chip button:hover { color: var(--text); }
+
+/* 기술·특성·아이템 검색 */
+.search-hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.search-hits li { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.search-hits li.open { border-color: var(--accent); }
+.search-hit {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: none;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.search-hit .muted { margin-left: auto; }
+.search-kind { padding: 0 6px; border-radius: 4px; background: var(--hover); color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.search-detail { padding: 0 12px 12px; }
+.search-info { max-width: 560px; }
+.search-info p { margin: 6px 0; }
+.search-detail h3 { margin: 12px 0 6px; font-size: 0.95rem; }
+.search-users { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.search-user { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px; border-radius: 8px; background: var(--hover); text-align: center; word-break: keep-all; }

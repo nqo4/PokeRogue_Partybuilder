@@ -17,6 +17,7 @@ import { TrainersView } from "./components/TrainersView";
 import { BiomesView } from "./components/BiomesView";
 import { StatsView } from "./components/StatsView";
 import { RotationView } from "./components/RotationView";
+import { SearchView } from "./components/SearchView";
 import { OfficialContext } from "./components/OfficialContext";
 import { fetchOfficial, type Official } from "./lib/official";
 
@@ -24,6 +25,7 @@ const TITLES: Record<Page, string> = {
   recommend: "클래식 파티 추천",
   check: "파티 만들기",
   rotation: "로테이션",
+  search: "기술·특성·아이템 검색",
   dex: "포켓몬 도감",
   trainers: "트레이너 도감",
   biomes: "바이옴 안내",
@@ -185,6 +187,9 @@ export default function App() {
               )}
               <div hidden={page !== "dex"}>
                 <PokedexView dex={dex} status={summary?.speciesStatus} shiny={summary?.shinyById} onOpen={(idx) => go({ detail: idx })} />
+              </div>
+              <div hidden={page !== "search"}>
+                <SearchView dex={dex} />
               </div>
               <div hidden={page !== "rotation"}>
                 <RotationView dex={dex} owned={ownedIds} />

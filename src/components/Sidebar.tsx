@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { followSystem, loadTheme, saveTheme, type ThemeChoice } from "../lib/theme";
 import { ContactDialog } from "./ContactDialog";
 
-export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide";
+export type Page = "recommend" | "check" | "rotation" | "dex" | "trainers" | "biomes" | "owned" | "stats" | "guide" | "search";
 
 const svg = (d: ReactNode) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -27,6 +27,13 @@ const ICONS: Record<Page, ReactNode> = {
     <>
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" />
+    </>,
+  ),
+  // 돋보기
+  search: svg(
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
     </>,
   ),
   // 몬스터볼
@@ -91,6 +98,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
       { page: "dex", label: "포켓몬" },
       { page: "trainers", label: "트레이너" },
       { page: "biomes", label: "바이옴" },
+      { page: "search", label: "검색" },
     ],
   },
   {

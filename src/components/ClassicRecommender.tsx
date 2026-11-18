@@ -34,6 +34,9 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
   const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 캐리몬: 추천 파티에 반드시 넣을 포켓몬 (SpeciesId) */
+  const [carries, setCarries] = useState<number[]>([]);
+  const [carryQuery, setCarryQuery] = useState("");
 
   const recommender = useMemo(() => {
     try {
@@ -44,6 +47,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
     }
   }, [dex, starters]);
 
+  const carryCost = carries.reduce((a, id) => a + (recommender?.candidate(id)?.owned.cost ?? 0), 0);
   const poolSize = starters.filter((s) => !onlyUncleared || s.classicWins === 0).length;
 
   // 조건이 바뀌면 재검색 기록을 지운다
@@ -60,7 +64,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
     // 계산 전에 "계산 중" 표시가 먼저 그려지도록 한 틱 미룬다
     setTimeout(() => {
       try {
-        const rs = recommender.recommend({ onlyUncleared, partySize, maxFormChange, exclude });
+        const rs = recommender.recommend({ onlyUncleared, partySize, maxFormChange, exclude, required: carries });
         setResults(rs);
         setShown([...exclude, ...rs.map((r) => r.key)]);
         setRound(fresh ? 1 : round + 1);
@@ -130,6 +134,62 @@ export function ClassicRecommenderView({ starters, dex, status, mode }: Props) {
           </select>
         </label>
         <span className="muted">후보 {poolSize}종 · 코스트 10 이하</span>
+      </div>
+      <div className="filters carry-bar">
+        <label>
+          캐리몬{" "}
+          <input
+            list="carry-options"
+            value={carryQuery}
+            placeholder={carries.length >= partySize ? "파티가 가득 찼습니다" : "꼭 넣을 포켓몬 이름"}
+            disabled={carries.length >= partySize}
+            onChange={(e) => {
+              const v = e.target.value;
+              const hit = recommender?.candidates.find((c) => c.owned.name === v.trim());
+              if (hit && !carries.includes(hit.owned.speciesId)) {
+                setCarries([...carries, hit.owned.speciesId]);
+                setCarryQuery("");
+                reset();
+              } else setCarryQuery(v);
+            }}
+          />
+        </label>
+        <datalist id="carry-options">
+          {recommender?.candidates
+            .filter((c) => !carries.includes(c.owned.speciesId))
+            .map((c) => (
+              <option key={c.owned.speciesId} value={c.owned.name}>
+                코스트 {c.owned.cost}
+              </option>
+            ))}
+        </datalist>
+        {carries.map((id) => {
+          const c = recommender?.candidate(id);
+          if (!c) return null;
+          return (
+            <span key={id} className="carry-chip">
+              <Sprite species={c.owned.dex} size={28} />
+              {c.owned.name}
+              <button
+                aria-label={`${c.owned.name} 빼기`}
+                onClick={() => {
+                  setCarries(carries.filter((x) => x !== id));
+                  reset();
+                }}
+              >
+                ✕
+              </button>
+            </span>
+          );
+        })}
+        {carries.length > 0 && (
+          <span className={carryCost > 10 ? "error small" : "muted small"}>
+            캐리몬 코스트 {carryCost}
+            {carryCost > 10 ? " · 10을 넘어서 파티를 만들 수 없습니다" : ` · 남은 코스트 ${10 - carryCost}`}
+          </span>
+        )}
+      </div>
+      <div className="filters">
         <button className="primary" onClick={() => run(!results)} disabled={busy || !recommender}>
           {busy ? "계산 중…" : results ? "다른 파티 추천" : "추천 파티 만들기"}
         </button>

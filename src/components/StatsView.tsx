@@ -77,9 +77,9 @@ export function StatsView({ summary, dex }: { summary: SaveSummary; dex: Dex }) 
         <Bar label="1럭" value={s.shiny.t1} icon={<ShinyIcon tier={0} owned />} />
         <Bar label="2럭" value={s.shiny.t2} icon={<ShinyIcon tier={1} owned />} />
         <Bar label="3럭" value={s.shiny.t3} icon={<ShinyIcon tier={2} owned />} />
-        <Bar label="모든 단계 완성" value={s.shiny.complete} />
+        <Bar label="이로치 전부 보유" value={s.shiny.complete} />
         <p className="small muted">
-          1럭은 모든 종, 2·3럭은 2·3럭이 있는 종({n(s.shiny.t2.total)}종)만 셉니다. 3럭을 잡으면 1럭도 등록된 것으로 칩니다.
+          1럭은 모든 종, 2·3럭은 2·3럭이 있는 종({n(s.shiny.t2.total)}종)만 셉니다. 3럭을 잡으면 1럭도 등록된 것으로 칩니다. "이로치 전부 보유"는 그 종에 있는 이로치를 모두 모은 종의 수입니다 (1·2·3럭이 있는 종은 셋 다, 1럭만 있는 종은 1럭).
         </p>
         <Facts
           rows={[
