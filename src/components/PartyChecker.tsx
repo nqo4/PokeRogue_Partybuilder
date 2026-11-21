@@ -16,6 +16,12 @@ import { FORM_FILTERS, formMatch, type FormFilter } from "./StarterTable";
 
 const PARTY_MAX = 6;
 
+/** 파티에 넣은 포켓몬: 스타터(SpeciesId)와 고른 최종 형태(Dex idx) */
+export interface PartyPick {
+  id: number;
+  form: number;
+}
+
 /** 게임 스타터 화면의 필터와 같은 묶음. 알 구매·사탕 수·개체값·포획/부화 횟수는 뺐다 */
 type ShinyFilter = "all" | "t3" | "t2" | "t1" | "none";
 /** 해금 조건 하나: 상관없음 / 해금함 / 안 함 */
@@ -46,10 +52,10 @@ export function PartyChecker({
   dex: Dex;
   status?: Record<number, FormStatus>;
   typeBadge: (fid: number) => JSX.Element;
-  onBuildFrom: (ids: number[]) => void;
+  onBuildFrom: (picks: PartyPick[]) => void;
 }) {
   const costLimit = recommender.cfg.raw.costLimit;
-  const [picks, setPicks] = useState<number[]>([]);
+  const [picks, setPicks] = useState<PartyPick[]>([]);
   const [query, setQuery] = useState("");
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
@@ -69,7 +75,7 @@ export function PartyChecker({
   }, [official, pokerusDate]);
   const [result, setResult] = useState<PartyRecommendation | null>(null);
 
-  const members = picks.map((id) => recommender.candidate(id)).filter((c): c is Candidate => !!c);
+  const members = picks.map((p) => recommender.candidate(p.id, p.form)).filter((c): c is Candidate => !!c);
   const cost = members.reduce((a, m) => a + m.owned.cost, 0);
   const luck = members.reduce((a, m) => a + m.owned.luck, 0);
 
@@ -98,7 +104,6 @@ export function PartyChecker({
       .filter(
         (c) =>
           (!gen || c.owned.gen === gen) &&
-          (type < 0 || c.owned.dex.types.includes(type)) &&
           shinyOk(c.owned.shinyTiers) &&
           unlockOk(c) &&
           formMatch(c.owned.family, form) &&
@@ -111,19 +116,31 @@ export function PartyChecker({
           ? a.owned.name.localeCompare(b.owned.name, "ko") * dir
           : (value(a) - value(b)) * dir || a.owned.speciesId - b.owned.speciesId,
       );
-  }, [recommender, query, gen, type, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
+  }, [recommender, query, gen, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
+
+  /** 카드는 최종 형태 기준 (진화 갈래·메가진화·거다이맥스 등 형태마다 한 장). 타입은 그 형태의 타입으로 거른다 */
+  const tiles = useMemo(
+    () =>
+      list.flatMap((c) =>
+        recommender
+          .forms(c.owned.speciesId)
+          .filter((f) => type < 0 || f.types.includes(type))
+          .map((f) => ({ c, f })),
+      ),
+    [list, recommender, type],
+  );
 
   /** 넣을 수 없는 이유 (넣을 수 있으면 null) */
   const blocked = (c: Candidate): string | null =>
-    picks.includes(c.owned.speciesId)
-      ? "이미 파티에 있음"
+    picks.some((p) => p.id === c.owned.speciesId)
+      ? "같은 포켓몬(다른 형태)이 이미 파티에 있음"
       : picks.length >= PARTY_MAX
         ? "6마리가 꽉 참"
         : cost + c.owned.cost > costLimit
           ? `코스트 초과 (${cost} + ${c.owned.cost} > ${costLimit})`
           : null;
 
-  const change = (next: number[]) => {
+  const change = (next: PartyPick[]) => {
     setPicks(next);
     setResult(null); // 파티가 바뀌면 이전 점검 결과는 지운다
   };
@@ -153,11 +170,11 @@ export function PartyChecker({
                 <button
                   type="button"
                   className="my-slot filled"
-                  onClick={() => change(picks.filter((id) => id !== m.owned.speciesId))}
-                  title={`${m.owned.name} 빼기`}
+                  onClick={() => change(picks.filter((p) => p.id !== m.owned.speciesId))}
+                  title={`${m.form.name} 빼기`}
                 >
-                  <Sprite species={m.owned.dex} size={48} />
-                  <span className="my-slot-name">{m.owned.name}</span>
+                  <Sprite species={m.form} size={48} />
+                  <span className="my-slot-name">{m.form.name}</span>
                   <span className="small muted">
                     코스트 <CostValue cost={m.owned.cost} reductions={m.owned.costReductions} />
                     {m.owned.luck > 0 && <span className={`luck luck-${m.owned.luck}`}>럭 {m.owned.luck}</span>}
@@ -269,7 +286,7 @@ export function PartyChecker({
           <option value="asc">오름차순</option>
           <option value="desc">내림차순</option>
         </select>
-        <span className="muted">{list.length}종</span>
+        <span className="muted">{list.length}종 · 최종 형태 {tiles.length}개</span>
       </div>
       <div className="filters unlock-filters" role="group" aria-label="해금">
         <span className="label">해금</span>
@@ -313,22 +330,22 @@ export function PartyChecker({
       </div>
 
       <div className="grid-view picker-grid">
-        {list.map((c) => {
+        {tiles.map(({ c, f }) => {
+          const id = c.owned.speciesId;
           const why = blocked(c);
-          const inParty = picks.includes(c.owned.speciesId);
+          const inParty = picks.some((p) => p.id === id && p.form === f.idx);
           return (
             <button
-              key={c.owned.speciesId}
+              key={`${c.owned.dex.idx}:${f.idx}`}
               className={`tile${inParty ? " picked" : ""}`}
               disabled={!!why && !inParty}
               aria-pressed={inParty}
-              title={why ?? `${c.owned.name} 파티에 넣기`}
-              onClick={() =>
-                inParty ? change(picks.filter((id) => id !== c.owned.speciesId)) : change([...picks, c.owned.speciesId])
-              }
+              title={why ?? `${f.name} 파티에 넣기`}
+              onClick={() => change(inParty ? picks.filter((p) => p.id !== id) : [...picks, { id, form: f.idx }])}
             >
-              <Sprite species={c.owned.dex} size={48} />
-              <span className="tile-name">{c.owned.name}</span>
+              <Sprite species={f} size={48} />
+              <span className="tile-name">{f.name}</span>
+              {f !== c.owned.dex && <span className="small muted">{c.owned.name}에서</span>}
               {pokerus.includes(c.owned.speciesId) && (
                 <span className="pokerus-tag" title="고른 날짜의 포켓러스 포켓몬">
                   포켓러스

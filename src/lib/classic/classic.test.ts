@@ -65,6 +65,21 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
     for (const r of rs) expect(r.analysis.members).toContain(carry);
   });
 
+  it("고정 포켓몬은 고른 최종 형태(메가진화 포함)로 들어간다", () => {
+    const ralts = rec.candidates.find((c) => c.owned.name === "랄토스");
+    if (!ralts) return;
+    const id = ralts.owned.speciesId;
+    const forms = rec.forms(id);
+    const mega = forms.find((f) => f.name.includes("메가") && f.name.includes("가디안"));
+    expect(forms.some((f) => f.name === "엘레이드")).toBe(true);
+    expect(mega).toBeDefined();
+    const [r] = rec.recommend({ onlyUncleared: false, required: [id], requiredForms: { [id]: mega!.idx }, count: 1 });
+    const m = r.analysis.members.find((x) => x.owned.speciesId === id)!;
+    expect(m.form).toBe(mega);
+    // 기본 형태(가디안)의 기술도 쓸 수 있다
+    expect(m.moves.size).toBeGreaterThan(5);
+  });
+
   it("고정 포켓몬에 정한 포지션(역할 없음 포함)을 그대로 쓴다", () => {
     const carry = rec.candidates.find((c) => c.owned.cost <= 3)!;
     const id = carry.owned.speciesId;

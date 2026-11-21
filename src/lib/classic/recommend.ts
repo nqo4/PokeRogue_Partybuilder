@@ -1,5 +1,5 @@
 // 클래식 파티 추천: 코스트 상한 안에서 빔 탐색으로 점수가 높은 조합을 찾는다.
-import type { Dex } from "../dex";
+import type { Dex, DexSpecies } from "../dex";
 import type { OwnedStarter } from "../starters";
 import { buildTypeMatrix, type TypeMatrix } from "../typeChart";
 import { CandidateBuilder, type Candidate } from "./candidate";
@@ -15,6 +15,8 @@ export interface RecommendOptions {
   maxFormChange?: number;
   /** 반드시 넣을 포켓몬 (SpeciesId) */
   required?: number[];
+  /** 고정 포켓몬(SpeciesId)별로 고른 최종 형태 (Dex idx). 없으면 점수가 가장 높은 형태 */
+  requiredForms?: Record<number, number>;
   /** 고정 포켓몬(SpeciesId)별로 정한 포지션. 없으면 점수대로 배정 */
   fixedPositions?: Record<number, FixedPosition>;
   /** 이미 보여준 파티 (partyKey). 이 파티들과 겹치지 않는 새 파티를 찾는다 */
@@ -51,6 +53,9 @@ export class ClassicRecommender {
   readonly chart: TypeMatrix;
   readonly candidates: Candidate[];
   private readonly byId = new Map<number, Candidate>();
+  private readonly builder: CandidateBuilder;
+  /** 사용자가 고른 형태로 평가한 후보 ("SpeciesId:Dex idx") */
+  private readonly byForm = new Map<string, Candidate>();
 
   constructor(
     private readonly dex: Dex,
@@ -59,13 +64,30 @@ export class ClassicRecommender {
   ) {
     this.cfg = resolveConfig(dex, config);
     this.chart = buildTypeMatrix(dex);
-    const builder = new CandidateBuilder(dex, this.cfg, this.chart);
+    const builder = (this.builder = new CandidateBuilder(dex, this.cfg, this.chart));
     this.candidates = starters.map((s) => builder.build(s));
     for (const c of this.candidates) this.byId.set(c.owned.speciesId, c);
   }
 
-  candidate(speciesId: number): Candidate | undefined {
-    return this.byId.get(speciesId);
+  /** formIdx 를 주면 그 최종 형태(메가진화 등 포함)로 평가한 후보 */
+  candidate(speciesId: number, formIdx?: number): Candidate | undefined {
+    const base = this.byId.get(speciesId);
+    if (!base || formIdx == null || base.form.idx === formIdx) return base;
+    const key = `${speciesId}:${formIdx}`;
+    let c = this.byForm.get(key);
+    if (!c) {
+      const form = this.forms(speciesId).find((f) => f.idx === formIdx);
+      if (!form) return base;
+      c = this.builder.build(base.owned, form);
+      this.byForm.set(key, c);
+    }
+    return c;
+  }
+
+  /** 고를 수 있는 최종 형태 (진화 갈래별 최종형 + 메가진화·거다이맥스·폼 변화) */
+  forms(speciesId: number): DexSpecies[] {
+    const base = this.byId.get(speciesId);
+    return base ? this.builder.pickableForms(base.owned) : [];
   }
 
   analyze(members: Candidate[], fixed?: Map<Candidate, FixedPosition>): PartyAnalysis {
@@ -78,7 +100,9 @@ export class ClassicRecommender {
     const maxForm = opts.maxFormChange ?? size;
     const count = opts.count ?? 5;
     const beamWidth = opts.beamWidth ?? 60;
-    const required = (opts.required ?? []).map((id) => this.byId.get(id)).filter((c): c is Candidate => !!c);
+    const required = (opts.required ?? [])
+      .map((id) => this.candidate(id, opts.requiredForms?.[id]))
+      .filter((c): c is Candidate => !!c);
     const requiredIds = new Set(required.map((c) => c.owned.speciesId));
     const fixed = new Map<Candidate, FixedPosition>();
     for (const c of required) {

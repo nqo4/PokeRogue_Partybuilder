@@ -8,6 +8,7 @@ import { StarterTable } from "./components/StarterTable";
 import { SpeciesModal } from "./components/StarterModal";
 import { Footer } from "./components/Footer";
 import { ClassicRecommenderView } from "./components/ClassicRecommender";
+import type { PartyPick } from "./components/PartyChecker";
 import { InfoProvider } from "./components/InfoPopup";
 import { Guide } from "./components/Guide";
 import { ScrollTopButton } from "./components/ScrollTopButton";
@@ -62,7 +63,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [nav, setNav] = useState<NavState>(readNav);
   /** 파티 만들기 → 파티 추천으로 넘긴 중심 포켓몬 */
-  const [partyFocus, setPartyFocus] = useState<{ ids: number[] } | null>(null);
+  const [partyFocus, setPartyFocus] = useState<{ picks: PartyPick[] } | null>(null);
 
   useEffect(() => {
     fetchDex().then(setDex, (e: Error) => setError(e.message));
@@ -178,8 +179,8 @@ export default function App() {
                       status={summary.speciesStatus}
                       mode={page === "check" ? "check" : "recommend"}
                       focus={partyFocus}
-                      onBuildFrom={(ids) => {
-                        setPartyFocus({ ids });
+                      onBuildFrom={(picks) => {
+                        setPartyFocus({ picks });
                         go({ page: "recommend", detail: null });
                         window.scrollTo(0, 0);
                       }}

@@ -114,10 +114,10 @@ export class CandidateBuilder {
     private readonly chart: TypeMatrix,
   ) {}
 
-  /** 진화 갈래가 여러 개면(이브이 등) 가장 점수가 높은 갈래를 고른다 */
-  build(owned: OwnedStarter): Candidate {
+  /** 진화 갈래가 여러 개면(이브이 등) 가장 점수가 높은 갈래를 고른다. only 를 주면 그 형태로만 평가한다 */
+  build(owned: OwnedStarter, only?: DexSpecies): Candidate {
     let best: Candidate | null = null;
-    for (const form of this.targetForms(owned)) {
+    for (const form of only ? [only] : this.targetForms(owned)) {
       let c = this.evaluate(owned, form, "offense");
       // 막이·서포터가 주 역할이면 그 역할에 맞는 특성으로 다시 평가해 본다
       if (isTank(c.primaryRole) || c.primaryRole === "support") {
@@ -127,6 +127,19 @@ export class CandidateBuilder {
       if (!best || c.value > best.value) best = c;
     }
     return best!;
+  }
+
+  /** 사용자가 고를 수 있는 최종 형태: 진화 갈래별 최종형과 그 메가진화·거다이맥스·폼 변화 */
+  pickableForms(owned: OwnedStarter): DexSpecies[] {
+    // 지가르데처럼 최종형 여러 개가 같은 폼 변화를 공유하면 한 번만 넣는다
+    return [
+      ...new Set(
+        this.targetForms(owned).flatMap((f) => [
+          f,
+          ...owned.family.filter((s) => s.id === f.id && s.form >= 1 && s.form <= 4),
+        ]),
+      ),
+    ];
   }
 
   private targetForms(owned: OwnedStarter): DexSpecies[] {
@@ -148,8 +161,11 @@ export class CandidateBuilder {
 
     // ── 기술: 레벨업(진화 전 형태 포함)·진화·기억버섯 + 해금 알기술
     const moves = new Set<number>();
+    // 메가진화 등 폼 변화 형태로 평가할 때는 그 기본 형태의 기술도 쓴다
     const lineage = owned.family.filter(
-      (f) => f.form === 0 && (f === owned.dex || f === form || (!f.starter && !f.final)),
+      (f) =>
+        f.form === 0 &&
+        (f === owned.dex || f === form || (f.id === form.id && f.img === String(f.id)) || (!f.starter && !f.final)),
     );
     for (const f of lineage) {
       for (const [k, code] of Object.entries(f.moves)) if (code <= 200) moves.add(Number(k));

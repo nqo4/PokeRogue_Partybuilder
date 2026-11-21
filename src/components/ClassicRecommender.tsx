@@ -10,7 +10,7 @@ import { RouteSection } from "./RouteSection";
 import type { FormStatus } from "../lib/starters";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { CostValue } from "./CostValue";
-import { PartyChecker } from "./PartyChecker";
+import { PartyChecker, type PartyPick } from "./PartyChecker";
 
 interface Props {
   starters: OwnedStarter[];
@@ -20,9 +20,9 @@ interface Props {
   /** 보여줄 화면: 파티 추천 / 내 파티 점검 (둘이 같은 추천기를 쓴다) */
   mode: "recommend" | "check";
   /** 파티 만들기에서 고른 포켓몬을 넘겨받아 파티 추천으로 간다 */
-  onBuildFrom: (ids: number[]) => void;
+  onBuildFrom: (picks: PartyPick[]) => void;
   /** 넘겨받은 중심 포켓몬 (넘길 때마다 새 객체) */
-  focus: { ids: number[] } | null;
+  focus: { picks: PartyPick[] } | null;
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
@@ -40,13 +40,16 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
   const [error, setError] = useState<string | null>(null);
   /** 캐리몬: 추천 파티에 반드시 넣을 포켓몬 (SpeciesId) */
   const [carries, setCarries] = useState<number[]>([]);
+  /** 고정 포켓몬별로 고른 최종 형태 (Dex idx) */
+  const [carryForms, setCarryForms] = useState<Record<number, number>>({});
   /** 고정 포켓몬별로 고른 포지션 (없으면 상관없음) */
   const [carryRoles, setCarryRoles] = useState<Record<number, FixedPosition>>({});
   // 파티 만들기에서 "이 포켓몬으로 파티 만들기"를 누르면 그 파티가 캐리몬이 된다
   const [lastFocus, setLastFocus] = useState(focus);
   if (focus !== lastFocus) {
     setLastFocus(focus);
-    setCarries(focus?.ids ?? []);
+    setCarries(focus?.picks.map((p) => p.id) ?? []);
+    setCarryForms(Object.fromEntries(focus?.picks.map((p) => [p.id, p.form]) ?? []));
     setCarryRoles({});
     setResults(null);
     setShown([]);
@@ -62,7 +65,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
     }
   }, [dex, starters]);
 
-  const carryCost = carries.reduce((a, id) => a + (recommender?.candidate(id)?.owned.cost ?? 0), 0);
+  const carryCost = carries.reduce((a, id) => a + (recommender?.candidate(id, carryForms[id])?.owned.cost ?? 0), 0);
   const poolSize = starters.filter((s) => !onlyUncleared || s.classicWins === 0).length;
 
   // 조건이 바뀌면 재검색 기록을 지운다
@@ -85,6 +88,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
           maxFormChange,
           exclude,
           required: carries,
+          requiredForms: carryForms,
           fixedPositions: carryRoles,
         });
         setResults(rs);
@@ -167,12 +171,12 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
         </p>
         <div className="filters">
         {carries.map((id) => {
-          const c = recommender?.candidate(id);
+          const c = recommender?.candidate(id, carryForms[id]);
           if (!c) return null;
           return (
             <span key={id} className="carry-chip">
-              <Sprite species={c.owned.dex} size={28} />
-              {c.owned.name}
+              <Sprite species={c.form} size={28} />
+              {c.form.name}
               <select
                 aria-label={`${c.owned.name} 포지션`}
                 value={carryRoles[id] ?? "any"}
