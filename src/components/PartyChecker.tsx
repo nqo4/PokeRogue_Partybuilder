@@ -409,14 +409,26 @@ function EvolutionPicker({
         </header>
         <p className="muted small">파티에서 쓸 형태를 고르세요. 고른 형태의 능력치·타입·특성으로 점검하고 추천합니다.</p>
         <div className="grid-view picker-grid">
-          {forms.map((f, i) => (
-            <button key={f.idx} className="tile" autoFocus={i === 0} onClick={() => onPick(f.idx)}>
+          {forms.map((f, i) => {
+            const st = c.owned.formStatus[f.idx];
+            return (
+            <button
+              key={f.idx}
+              className={`tile${st && st !== "caught" ? ` dim-${st}` : ""}`}
+              title={st === "unseen" ? "미발견" : st === "seen" ? "미포획 (발견만)" : undefined}
+              autoFocus={i === 0}
+              onClick={() => onPick(f.idx)}
+            >
               <Sprite species={f} size={56} />
               <span className="tile-name">{f.name}</span>
               <span>{f.types.map(typeBadge)}</span>
-              <span className="small muted">종족값 {f.bst}</span>
+              <span className="small muted">
+                종족값 {f.bst}
+                {st === "unseen" ? " · 미발견" : st === "seen" ? " · 미포획" : ""}
+              </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
