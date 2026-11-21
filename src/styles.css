@@ -701,3 +701,4 @@ tr.current > td { background: var(--hover); }
 .unlock-filters { gap: 6px 14px; }
 .unlock-item { display: inline-flex; align-items: center; gap: 6px; }
 .carry-chip select { padding: 2px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }
+.modal.evo-picker { max-width: 560px; }

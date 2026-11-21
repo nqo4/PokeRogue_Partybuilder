@@ -1,7 +1,7 @@
 // 내 파티 점검: 새 게임 스타터 고르기처럼 보유 스타터로 파티를 짜고(코스트 10 이하),
 // 추천과 같은 기준으로 역할·약점을 점검한다. 결과 카드는 추천 결과(PartyCard)를 그대로 쓴다.
-import { useMemo, useState } from "react";
-import { typesInGameOrder, type Dex } from "../lib/dex";
+import { useEffect, useMemo, useState } from "react";
+import { typesInGameOrder, type Dex, type DexSpecies } from "../lib/dex";
 import { pokerusStarters } from "../lib/pokerus";
 import { useOfficial } from "./OfficialContext";
 import type { FormStatus } from "../lib/starters";
@@ -118,17 +118,14 @@ export function PartyChecker({
       );
   }, [recommender, query, gen, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
 
-  /** 카드는 최종 형태 기준 (진화 갈래·메가진화·거다이맥스 등 형태마다 한 장). 타입은 그 형태의 타입으로 거른다 */
+  /** 카드는 스타터 기준. 타입은 진화형·폼 변화까지 포함해서 거른다 */
   const tiles = useMemo(
-    () =>
-      list.flatMap((c) =>
-        recommender
-          .forms(c.owned.speciesId)
-          .filter((f) => type < 0 || f.types.includes(type))
-          .map((f) => ({ c, f })),
-      ),
+    () => list.filter((c) => type < 0 || recommender.forms(c.owned.speciesId).some((f) => f.types.includes(type))),
     [list, recommender, type],
   );
+  /** 진화형을 고르는 중인 스타터 */
+  const [choosing, setChoosing] = useState<Candidate | null>(null);
+  const add = (c: Candidate, form: number) => change([...picks, { id: c.owned.speciesId, form }]);
 
   /** 넣을 수 없는 이유 (넣을 수 있으면 null) */
   const blocked = (c: Candidate): string | null =>
@@ -286,7 +283,7 @@ export function PartyChecker({
           <option value="asc">오름차순</option>
           <option value="desc">내림차순</option>
         </select>
-        <span className="muted">{list.length}종 · 최종 형태 {tiles.length}개</span>
+        <span className="muted">{tiles.length}종</span>
       </div>
       <div className="filters unlock-filters" role="group" aria-label="해금">
         <span className="label">해금</span>
@@ -330,22 +327,29 @@ export function PartyChecker({
       </div>
 
       <div className="grid-view picker-grid">
-        {tiles.map(({ c, f }) => {
+        {tiles.map((c) => {
           const id = c.owned.speciesId;
-          const why = blocked(c);
-          const inParty = picks.some((p) => p.id === id && p.form === f.idx);
+          const pick = picks.find((p) => p.id === id);
+          const inParty = !!pick;
+          const why = inParty ? null : blocked(c);
+          const picked = pick && recommender.forms(id).find((f) => f.idx === pick.form);
           return (
             <button
-              key={`${c.owned.dex.idx}:${f.idx}`}
+              key={c.owned.dex.idx}
               className={`tile${inParty ? " picked" : ""}`}
-              disabled={!!why && !inParty}
+              disabled={!!why}
               aria-pressed={inParty}
-              title={why ?? `${f.name} 파티에 넣기`}
-              onClick={() => change(inParty ? picks.filter((p) => p.id !== id) : [...picks, { id, form: f.idx }])}
+              title={why ?? (inParty ? `${c.owned.name} 빼기` : `${c.owned.name} 진화형 골라서 넣기`)}
+              onClick={() => {
+                if (inParty) return change(picks.filter((p) => p.id !== id));
+                const forms = recommender.forms(id);
+                if (forms.length === 1) add(c, forms[0].idx);
+                else setChoosing(c);
+              }}
             >
-              <Sprite species={f} size={48} />
-              <span className="tile-name">{f.name}</span>
-              {f !== c.owned.dex && <span className="small muted">{c.owned.name}에서</span>}
+              <Sprite species={c.owned.dex} size={48} />
+              <span className="tile-name">{c.owned.name}</span>
+              {picked && picked !== c.owned.dex && <span className="small">→ {picked.name}</span>}
               {pokerus.includes(c.owned.speciesId) && (
                 <span className="pokerus-tag" title="고른 날짜의 포켓러스 포켓몬">
                   포켓러스
@@ -358,6 +362,62 @@ export function PartyChecker({
             </button>
           );
         })}
+      </div>
+      {choosing && (
+        <EvolutionPicker
+          c={choosing}
+          forms={recommender.forms(choosing.owned.speciesId)}
+          typeBadge={typeBadge}
+          onPick={(form) => {
+            add(choosing, form);
+            setChoosing(null);
+          }}
+          onClose={() => setChoosing(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** 스타터를 눌렀을 때 쓸 진화형(메가진화·거다이맥스 등 포함)을 고르는 창 */
+function EvolutionPicker({
+  c,
+  forms,
+  typeBadge,
+  onPick,
+  onClose,
+}: {
+  c: Candidate;
+  forms: DexSpecies[];
+  typeBadge: (fid: number) => JSX.Element;
+  onPick: (formIdx: number) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal evo-picker" role="dialog" aria-modal="true" aria-labelledby="evo-title">
+        <header className="modal-head">
+          <h2 id="evo-title">{c.owned.name}: 진화형 고르기</h2>
+          <button className="modal-close" onClick={onClose} aria-label="닫기">
+            ✕
+          </button>
+        </header>
+        <p className="muted small">파티에서 쓸 형태를 고르세요. 고른 형태의 능력치·타입·특성으로 점검하고 추천합니다.</p>
+        <div className="grid-view picker-grid">
+          {forms.map((f, i) => (
+            <button key={f.idx} className="tile" autoFocus={i === 0} onClick={() => onPick(f.idx)}>
+              <Sprite species={f} size={56} />
+              <span className="tile-name">{f.name}</span>
+              <span>{f.types.map(typeBadge)}</span>
+              <span className="small muted">종족값 {f.bst}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
