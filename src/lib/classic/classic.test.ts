@@ -10,6 +10,7 @@ import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
 import { findings } from "./check";
 import { cleared, eligible, type ClearCriterion } from "../ribbons";
+import { Official, type OfficialData } from "../official";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
@@ -230,6 +231,17 @@ describe.skipIf(!savePath)("챌린지 파티 추천", () => {
       expect(eevee.form.name).toBe("부스터");
       expect(rec.forms(133).every((f) => f.types.includes(fire))).toBe(true);
     }
+  });
+
+  it("공식 진화 데이터가 있으면 리전폼 진화도 쓴다 (단일 8세대 브케인 → 히스이 블레이범)", () => {
+    const official = new Official(JSON.parse(fs.readFileSync(path.join(root, "public/data/official.json"), "utf8")) as OfficialData);
+    const rec = new ClassicRecommender(dex, summary.starters, undefined, { mode: "gen", gen: 8 }, official);
+    expect(rec.candidate(155)?.form.name).toBe("히스이 블레이범");
+    // 클래식에서는 블레이범·히스이 블레이범 둘 다 고를 수 있다
+    const classic = new ClassicRecommender(dex, summary.starters, undefined, undefined, official);
+    const names = classic.forms(155).map((f) => f.name);
+    expect(names).toContain("블레이범");
+    expect(names).toContain("히스이 블레이범");
   });
 
   it("단일 세대: 모든 멤버의 형태가 그 세대다", () => {

@@ -207,6 +207,11 @@ button.primary:disabled { opacity: 0.6; cursor: wait; }
   background: var(--text); color: var(--bg); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .sprite-tip .muted { color: inherit; opacity: 0.7; }
+/* 챌린지에서 못 쓰는 형태가 있는 포켓몬: 오른쪽 위 빨간 느낌표, 툴팁에 경고 문구 */
+.sprite-warn { position: absolute; top: 0; right: 0; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5)); }
+.sprite-tip-warn { display: block; margin-top: 2px; color: #ff6b74; font-weight: 700; white-space: normal; width: max-content; max-width: min(320px, calc(100vw - 40px)); }
+:root[data-theme="dark"] .sprite-tip-warn { color: #c4121d; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .name-cell { display: flex; align-items: center; gap: 6px; }
 .member-head .sprite { margin-right: 4px; }
 .family-sprites { display: inline-flex; align-items: center; gap: 2px; }

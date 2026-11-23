@@ -1,9 +1,11 @@
 // 게임 종류 고르기 팝업 (클리어 여부를 따지는 기준): 모드(클래식·챌린지) → 챌린지 종류(단일 세대·단일 타입) → 세대·타입.
 // 단계마다 라디오 버튼으로 고르고, 뒤로 가기로 앞 단계로 돌아간다.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { typesInGameOrder, type Dex } from "../lib/dex";
 import { cleared, criterionLabel, eligible, type ClearCriterion } from "../lib/ribbons";
 import type { OwnedStarter } from "../lib/starters";
+import { challengeWarning } from "../lib/challengeForms";
+import { useOfficial } from "./OfficialContext";
 
 type Mode = "classic" | "challenge";
 type Challenge = "gen" | "type";
@@ -149,4 +151,18 @@ export function GameKindButton({
       )}
     </>
   );
+}
+
+/** 게임 종류에서 못 쓰는 형태가 있는 스타터의 경고 문구 (없으면 null). 포켓몬 아이콘의 warning 으로 쓴다 */
+export function useChallengeWarning(dex: Dex, c: ClearCriterion): (o: OwnedStarter) => string | null {
+  const official = useOfficial();
+  const key = JSON.stringify(c);
+  return useMemo(() => {
+    const cache = new Map<number, string | null>();
+    return (o: OwnedStarter) => {
+      if (!cache.has(o.speciesId)) cache.set(o.speciesId, challengeWarning(o, c, dex, official));
+      return cache.get(o.speciesId)!;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- c 는 key 로 비교한다
+  }, [dex, official, key]);
 }

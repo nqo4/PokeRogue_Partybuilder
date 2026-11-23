@@ -11,7 +11,8 @@ import type { FormStatus } from "../lib/starters";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { CostValue } from "./CostValue";
 import { PartyChecker, type PartyPick } from "./PartyChecker";
-import { GameKindButton } from "./ClearCriterionDialog";
+import { GameKindButton, useChallengeWarning } from "./ClearCriterionDialog";
+import { useOfficial } from "./OfficialContext";
 import { CLASSIC, cleared, type ClearCriterion } from "../lib/ribbons";
 
 /** 게임 종류별 추천기. 만들 때 후보 평가가 무거워서 한 번 만든 것은 다시 쓴다 */
@@ -65,6 +66,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
     setRound(0);
   }
 
+  const official = useOfficial();
   const recommenderFor = useMemo<RecommenderFor>(() => {
     const cache = new Map<string, ClassicRecommender>();
     return (c) => {
@@ -72,7 +74,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
       let r = cache.get(key);
       if (!r) {
         try {
-          r = new ClassicRecommender(dex, starters, undefined, c);
+          r = new ClassicRecommender(dex, starters, undefined, c, official);
         } catch (e) {
           setError((e as Error).message);
           return null;
@@ -81,8 +83,9 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
       }
       return r;
     };
-  }, [dex, starters]);
+  }, [dex, starters, official]);
   const recommender = recommenderFor(criterion);
+  const warn = useChallengeWarning(dex, criterion);
 
   const carryCost = carries.reduce((a, id) => a + (recommender?.candidate(id, carryForms[id])?.owned.cost ?? 0), 0);
   const poolSize = (recommender?.candidates ?? []).filter((c) => !onlyUncleared || !cleared(c.owned, criterion, dex)).length;
@@ -213,7 +216,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
           if (!c) return null;
           return (
             <span key={id} className="carry-chip">
-              <Sprite species={c.form} size={28} />
+              <Sprite species={c.form} size={28} warning={warn(c.owned)} />
               {c.form.name}
               <select
                 aria-label={`${c.owned.name} 포지션`}
@@ -285,7 +288,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
         </p>
       )}
       {results?.map((r, i) => (
-        <PartyCard key={r.key} index={i} rec={r} dex={dex} status={status} typeBadge={typeBadge} />
+        <PartyCard key={r.key} index={i} rec={r} dex={dex} status={status} typeBadge={typeBadge} warn={warn} />
       ))}
       </div>
     </section>
@@ -299,6 +302,7 @@ export function PartyCard({
   dex,
   status,
   typeBadge,
+  warn = () => null,
 }: {
   index: number;
   /** 머리 제목 (없으면 "추천 n") */
@@ -307,6 +311,8 @@ export function PartyCard({
   dex: Dex;
   status?: Record<number, FormStatus>;
   typeBadge: (fid: number) => JSX.Element;
+  /** 챌린지에서 못 쓰는 형태가 있는 포켓몬의 경고 문구 */
+  warn?: (o: OwnedStarter) => string | null;
 }) {
   const a = rec.analysis;
   const forms = a.members.filter(hasFormChange).length;
@@ -342,7 +348,7 @@ export function PartyCard({
               aria-controls={detailId}
               onClick={() => toggle(i)}
             >
-              <Sprite species={m.form} size={64} />
+              <Sprite species={m.form} size={64} warning={warn(m.owned)} />
               <span className="strip-name">{m.form.name}</span>
               <span className="strip-types">{m.types.map(typeBadge)}</span>
               <span className="strip-meta">
@@ -383,7 +389,7 @@ export function PartyCard({
 
       <div id={detailId} className="members" hidden={open.size === 0}>
         {a.members.map((m, i) =>
-          open.has(i) ? <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} position={a.positions[i]} typeBadge={typeBadge} /> : null,
+          open.has(i) ? <MemberCard key={m.owned.speciesId} m={m} roles={a.memberRoles[i]} position={a.positions[i]} typeBadge={typeBadge} warning={warn(m.owned)} /> : null,
         )}
       </div>
 
@@ -424,7 +430,7 @@ export function PartyCard({
             <ul>
               {rec.suggestions.map((s) => (
                 <li key={s.candidate.owned.speciesId} className="suggest-row">
-                  <Sprite species={s.candidate.form} size={36} />
+                  <Sprite species={s.candidate.form} size={36} warning={warn(s.candidate.owned)} />
                   <span>
                     <b>{s.candidate.form.name}</b> (코스트 {s.candidate.owned.cost})
                     {s.replace ? ` ↔ ${s.replace.form.name}${s.replacesFixed ? "(고정)" : ""} 대신` : " 추가"} — {s.covers.map(typeBadge)} 반감·무효
@@ -461,12 +467,14 @@ function MemberCard({
   roles,
   position,
   typeBadge,
+  warning,
 }: {
   m: Candidate;
   roles: (typeof ROLES)[number][];
   /** 파티 안에서 맡은 포지션 (없으면 이 포켓몬의 주 역할 기준으로 보여 준다) */
   position: (typeof ROLES)[number] | null;
   typeBadge: (fid: number) => JSX.Element;
+  warning?: string | null;
 }) {
   const o = m.owned;
   const basis = position ?? m.primaryRole;
@@ -475,7 +483,7 @@ function MemberCard({
   return (
     <div className="member">
       <div className="member-head">
-        <Sprite species={m.form} size={64} />
+        <Sprite species={m.form} size={64} warning={warning} />
         <div className="member-title">
           <div>
             <b>{m.form.name}</b>

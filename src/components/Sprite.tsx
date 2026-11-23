@@ -14,10 +14,23 @@ interface Props {
   species: DexSpecies;
   /** 칸 크기(px) */
   size?: number;
+  /** 챌린지 경고 문구. 있으면 오른쪽 위에 빨간 느낌표를 달고, 마우스를 올리면 문구를 보여준다 */
+  warning?: string | null;
+}
+
+/** 흰 테두리 빨간 느낌표 (4×9 도트) */
+function WarnMark() {
+  return (
+    <svg className="sprite-warn" viewBox="0 0 4 9" width={8} height={18} shapeRendering="crispEdges" aria-hidden="true">
+      <rect width="4" height="9" fill="#fff" />
+      <rect x="1" y="1" width="2" height="4" fill="#e0242f" />
+      <rect x="1" y="6" width="2" height="2" fill="#e0242f" />
+    </svg>
+  );
 }
 
 /** 포켓몬 이미지. 마우스를 올리면 도감 번호와 이름을, 누르면 상세 화면을 보여준다. */
-export function Sprite({ species, size = 48 }: Props) {
+export function Sprite({ species, size = 48, warning }: Props) {
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const select = useContext(SpriteSelectContext);
   const no = String(nationalDex(species.id)).padStart(4, "0");
@@ -29,7 +42,9 @@ export function Sprite({ species, size = 48 }: Props) {
       onMouseEnter={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         // 화면 왼쪽·오른쪽 끝에서 툴팁이 잘리지 않도록 가운데 위치를 안쪽으로 당긴다
-        setTip({ x: Math.min(Math.max(r.left + r.width / 2, 130), window.innerWidth - 130), y: r.top });
+        // 경고 문구가 있으면 툴팁이 넓어서(최대 320px) 더 안쪽으로 당긴다
+        const edge = warning ? 172 : 130;
+        setTip({ x: Math.min(Math.max(r.left + r.width / 2, edge), window.innerWidth - edge), y: r.top });
       }}
       onMouseLeave={() => setTip(null)}
       onClick={(e) => {
@@ -45,12 +60,19 @@ export function Sprite({ species, size = 48 }: Props) {
         loading="lazy"
         onError={(e) => (e.currentTarget.style.visibility = "hidden")}
       />
+      {warning && (
+        <>
+          <WarnMark />
+          <span className="visually-hidden">{warning}</span>
+        </>
+      )}
       {tip &&
         // body 에 띄워서, 흐리게 표시한 줄이나 스크롤 영역의 영향을 받지 않게 한다
         createPortal(
           <span className="sprite-tip" style={{ left: tip.x, top: tip.y }}>
             <b>No.{no}</b> {species.name}
             {select && <span className="muted"> · 눌러서 상세 보기</span>}
+            {warning && <span className="sprite-tip-warn">{warning}</span>}
           </span>,
           document.body,
         )}

@@ -114,6 +114,8 @@ export class CandidateBuilder {
     private readonly chart: TypeMatrix,
     /** 챌린지에서 쓸 수 있는 형태인가 (단일 타입·세대 챌린지는 그 타입·세대인 형태로만 싸울 수 있다) */
     private readonly allow: (f: DexSpecies) => boolean = () => true,
+    /** 스타터에서 진화해 닿는 종 (공식 진화 데이터, 리전폼 진화 포함). 없으면 같은 계열에서 추정한다 */
+    private readonly evolutionLine?: (id: number) => number[],
   ) {}
 
   /** 진화 갈래가 여러 개면(이브이 등) 가장 점수가 높은 갈래를 고른다. only 를 주면 그 형태로만 평가한다 */
@@ -146,8 +148,11 @@ export class CandidateBuilder {
 
   private targetForms(owned: OwnedStarter): DexSpecies[] {
     const regional = owned.speciesId >= 2000;
-    // 기본 이미지 키(= SpeciesId)인 형태만 진화 결과로 본다. 스타모빌 같은 별도 폼은 제외
-    const evo = (f: DexSpecies) => f.form === 0 && f.img === String(f.id) && (regional || f.id < 2000);
+    const line = this.evolutionLine ? new Set(this.evolutionLine(owned.speciesId)) : null;
+    // 기본 이미지 키(= SpeciesId)인 형태만 진화 결과로 본다. 스타모빌 같은 별도 폼은 제외.
+    // 진화 데이터가 있으면 실제로 진화해 닿는 종만 (브케인 → 히스이 블레이범 같은 리전폼 진화 포함)
+    const evo = (f: DexSpecies) =>
+      f.form === 0 && f.img === String(f.id) && (line ? line.has(f.id) : regional || f.id < 2000);
     const finals = owned.family.filter((f) => f.final && evo(f) && this.allow(f));
     if (finals.length) return finals;
     // 챌린지에 맞는 최종형이 없으면 맞는 진화 단계 중 종족값이 가장 높은 것

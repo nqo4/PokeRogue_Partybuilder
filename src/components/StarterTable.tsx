@@ -7,7 +7,7 @@ import { STAT_NAMES } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
 import { SearchInput } from "./SearchInput";
 import { CostValue } from "./CostValue";
-import { GameKindButton } from "./ClearCriterionDialog";
+import { GameKindButton, useChallengeWarning } from "./ClearCriterionDialog";
 import { CLASSIC, cleared, eligible, type ClearCriterion } from "../lib/ribbons";
 
 /** 이 형태에서 잡을 수 있는 이로치 단계를 다 모았는가 */
@@ -68,6 +68,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
   /** 게임 종류: 클리어 여부를 따지는 기준 (클래식, 단일 세대, 단일 타입). 챌린지면 도전할 수 있는 스타터만 보인다 */
   const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
   const [catchState, setCatchState] = useState<CatchFilter>("all");
+  const warn = useChallengeWarning(dex, criterion);
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
   const [form, setForm] = useState<FormFilter>("all");
@@ -189,7 +190,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
         <div className="grid-view">
           {rows.map((s) => (
             <button key={s.speciesId} className="tile" onClick={() => onOpen(s.dex.idx)}>
-              <Sprite species={s.dex} size={56} />
+              <Sprite species={s.dex} size={56} warning={warn(s)} />
               <span className="tile-name">{s.name}</span>
               <span>{s.dex.types.map(typeBadge)}</span>
               <span className="small muted">
@@ -227,7 +228,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
                   <td className="num">{nationalDex(s.speciesId)}</td>
                   <td>
                     <span className="name-cell">
-                      <Sprite species={s.dex} size={36} />
+                      <Sprite species={s.dex} size={36} warning={warn(s)} />
                       {s.name}
                       {!s.passive.unlocked && <span className="locked small" title="패시브 미해금">패시브✕</span>}
                     </span>

@@ -194,6 +194,7 @@ export class Official {
   readonly biomeById = new Map<number, Biome>();
   readonly trainerByType = new Map<string, Trainer>();
   private readonly evoByTo = new Map<number, Evolution[]>();
+  private readonly evoByFrom = new Map<number, Evolution[]>();
 
   constructor(readonly data: OfficialData) {
     for (const b of data.biomes) this.biomeById.set(b.id, b);
@@ -202,6 +203,9 @@ export class Official {
       const list = this.evoByTo.get(e.to);
       if (list) list.push(e);
       else this.evoByTo.set(e.to, [e]);
+      const from = this.evoByFrom.get(e.from);
+      if (from) from.push(e);
+      else this.evoByFrom.set(e.from, [e]);
     }
   }
 
@@ -214,6 +218,15 @@ export class Official {
       seen.add(k);
       return true;
     });
+  }
+
+  /** 이 종(SpeciesId)에서 진화해 닿을 수 있는 모든 종 (자기 자신 포함, 리전폼 진화 포함) */
+  evolutionLine(id: number): number[] {
+    const out = [id];
+    for (let i = 0; i < out.length; i++) {
+      for (const e of this.evoByFrom.get(out[i]) ?? []) if (!out.includes(e.to)) out.push(e.to);
+    }
+    return out;
   }
 
   /** 이 종의 이 폼으로 바뀌는 조건 */

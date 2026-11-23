@@ -1,5 +1,6 @@
 // 클래식 파티 추천: 코스트 상한 안에서 빔 탐색으로 점수가 높은 조합을 찾는다.
 import type { Dex, DexSpecies } from "../dex";
+import type { Official } from "../official";
 import type { OwnedStarter } from "../starters";
 import { buildTypeMatrix, type TypeMatrix } from "../typeChart";
 import { CandidateBuilder, type Candidate } from "./candidate";
@@ -67,10 +68,18 @@ export class ClassicRecommender {
     starters: OwnedStarter[],
     config?: ClassicConfig,
     readonly challenge: ClearCriterion = CLASSIC,
+    /** 공식 진화 데이터. 주면 리전폼 진화(히스이 블레이범 등)도 최종 형태로 쓴다 */
+    official?: Official | null,
   ) {
     this.cfg = resolveConfig(dex, config);
     this.chart = buildTypeMatrix(dex);
-    const builder = (this.builder = new CandidateBuilder(dex, this.cfg, this.chart, (f) => formAllowed(f, challenge)));
+    const builder = (this.builder = new CandidateBuilder(
+      dex,
+      this.cfg,
+      this.chart,
+      (f) => formAllowed(f, challenge),
+      official ? (id) => official.evolutionLine(id) : undefined,
+    ));
     // 챌린지에 맞는 형태가 하나도 없는 스타터는 뺀다
     this.candidates = starters
       .filter((s) => eligible(s, challenge))

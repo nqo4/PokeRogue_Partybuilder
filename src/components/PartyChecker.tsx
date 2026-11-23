@@ -6,7 +6,7 @@ import { pokerusStarters } from "../lib/pokerus";
 import { useOfficial } from "./OfficialContext";
 import type { FormStatus, OwnedStarter } from "../lib/starters";
 import { CLASSIC, cleared, type ClearCriterion } from "../lib/ribbons";
-import { GameKindButton } from "./ClearCriterionDialog";
+import { GameKindButton, useChallengeWarning } from "./ClearCriterionDialog";
 import type { Candidate } from "../lib/classic/candidate";
 import { findings } from "../lib/classic/check";
 import { partyKey, type PartyRecommendation } from "../lib/classic/recommend";
@@ -62,6 +62,7 @@ export function PartyChecker({
   /** 게임 종류. 챌린지면 도전할 수 있는 스타터만 보이고, 형태도 챌린지에 맞는 것만 고른다 */
   const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
   const recommender = recommenderFor(criterion)!;
+  const warn = useChallengeWarning(dex, criterion);
   const ownedIds = useMemo(() => new Set(starters.map((s) => s.speciesId)), [starters]);
   const costLimit = recommender.cfg.raw.costLimit;
   const [picks, setPicks] = useState<PartyPick[]>([]);
@@ -193,7 +194,7 @@ export function PartyChecker({
                   onClick={() => change(picks.filter((p) => p.id !== m.owned.speciesId))}
                   title={`${m.form.name} 빼기`}
                 >
-                  <Sprite species={m.form} size={48} />
+                  <Sprite species={m.form} size={48} warning={warn(m.owned)} />
                   <span className="my-slot-name">{m.form.name}</span>
                   <span className="small muted">
                     코스트 <CostValue cost={m.owned.cost} reductions={m.owned.costReductions} />
@@ -248,7 +249,7 @@ export function PartyChecker({
               경로를 고를 수 있습니다.
             </p>
           </section>
-          <PartyCard index={0} title="내 파티" rec={result} dex={dex} status={status} typeBadge={typeBadge} />
+          <PartyCard index={0} title="내 파티" rec={result} dex={dex} status={status} typeBadge={typeBadge} warn={warn} />
         </>
       )}
 
@@ -378,7 +379,7 @@ export function PartyChecker({
                 else setChoosing(c);
               }}
             >
-              <Sprite species={c.owned.dex} size={48} />
+              <Sprite species={c.owned.dex} size={48} warning={warn(c.owned)} />
               <span className="tile-name">{c.owned.name}</span>
               {picked && picked !== c.owned.dex && <span className="small">→ {picked.name}</span>}
               {pokerus.includes(c.owned.speciesId) && (

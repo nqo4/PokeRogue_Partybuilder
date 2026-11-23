@@ -5,6 +5,8 @@ import { Dex, typesInGameOrder, type DexData } from "./dex";
 import { RIBBONS, cleared, eligible, hasRibbon, parseRibbons, type ClearCriterion } from "./ribbons";
 import { decryptSave } from "./save";
 import { buildSummary, type SaveSummary } from "./starters";
+import { Official, type OfficialData } from "./official";
+import { challengeWarning } from "./challengeForms";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
@@ -52,6 +54,26 @@ describe.skipIf(!savePath)("실제 세이브 리본", () => {
         if (cleared(s, c, dex)) expect(eligible(s, c), `${s.name} ${JSON.stringify(c)}`).toBe(true);
       }
     }
+  });
+
+  it("챌린지에서 못 쓰는 형태 경고 (진화 단계·리전폼 진화·폼 변화)", () => {
+    const official = new Official(JSON.parse(fs.readFileSync(path.join(root, "public/data/official.json"), "utf8")) as OfficialData);
+    const get = (id: number) => summary.starters.find((s) => s.speciesId === id)!;
+    const fire: ClearCriterion = { mode: "type", type: dex.fid("type", "불꽃") };
+    const w = (id: number, c: ClearCriterion) => challengeWarning(get(id), c, dex, official);
+    expect(w(4, fire)).toBeNull(); // 파이리 계열은 전부 불꽃
+    expect(w(4, { mode: "classic" })).toBeNull();
+    expect(w(133, fire)).toBe("주의: 해당 챌린지에서는 부스터 폼만 사용 가능합니다!");
+    // 브케인: 블레이범(2세대)과 히스이 블레이범(8세대)
+    expect(w(155, { mode: "gen", gen: 8 })).toBe("주의: 해당 챌린지에서는 히스이 블레이범 폼만 사용 가능합니다!");
+    expect(w(155, { mode: "gen", gen: 2 })).toContain("블레이범 폼만");
+    expect(w(155, { mode: "gen", gen: 2 })).not.toContain("히스이");
+    // 피츄의 1세대: 피카츄·라이츄(메가·거다이 포함)만, 피카츄 코스튬 같은 다른 스타터의 형태는 넣지 않는다
+    const pichu = w(172, { mode: "gen", gen: 1 })!;
+    expect(pichu).toContain("피카츄 폼");
+    expect(pichu).toContain("라이츄 폼");
+    expect(pichu).not.toContain("파트너");
+    expect(pichu).not.toContain("알로라");
   });
 
   it("클래식 리본이 있으면 클래식 클리어 횟수도 있다", () => {
