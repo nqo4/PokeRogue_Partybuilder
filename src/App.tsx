@@ -37,6 +37,26 @@ const TITLES: Record<Page, string> = {
 /** 세이브가 있어야 쓸 수 있는 화면 */
 const NEEDS_SAVE: Page[] = ["recommend", "check", "owned", "stats"];
 
+/** 불러온 세이브를 이 브라우저에 보관하는 키. 새로고침해도 다시 올리지 않아도 된다 (서버로는 보내지 않는다) */
+const SAVE_KEY = "savedPrsv";
+
+function readStoredSave(): string | null {
+  try {
+    return localStorage.getItem(SAVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeSave(text: string | null) {
+  try {
+    if (text == null) localStorage.removeItem(SAVE_KEY);
+    else localStorage.setItem(SAVE_KEY, text);
+  } catch {
+    /* 저장 공간이 없거나 막혀 있으면 이번 방문 동안만 쓴다 */
+  }
+}
+
 /** 브라우저 기록에 남기는 화면 상태. 뒤로가기를 누르면 이전 상태로 돌아간다 */
 interface NavState {
   page: Page;
@@ -98,12 +118,31 @@ export default function App() {
   /** 사진을 누르면 그 형태의 상세 화면을 띄운다 (상세 화면 안에서 누르면 새 상세로 바뀐다) */
   const showSpecies = useCallback((s: DexSpecies) => go({ detail: s.idx }), [go]);
 
+  // 도감 데이터가 오면, 보관해 둔 세이브가 있으면 바로 다시 읽는다
+  useEffect(() => {
+    if (!dex) return;
+    const text = readStoredSave();
+    if (!text) return;
+    try {
+      setSummary(buildSummary(decryptSave(text), dex));
+    } catch {
+      storeSave(null); // 읽을 수 없게 된 세이브는 버린다
+    }
+  }, [dex]);
+
+  function forgetSave() {
+    storeSave(null);
+    setSummary(null);
+  }
+
   async function handleFile(file: File) {
     if (!dex) return;
     setError(null);
     try {
-      const save = decryptSave(await file.text());
+      const text = await file.text();
+      const save = decryptSave(text);
       setSummary(buildSummary(save, dex));
+      storeSave(text);
     } catch (e) {
       setSummary(null);
       setError(e instanceof SaveError ? e.message : `세이브를 읽는 중 오류가 났습니다: ${(e as Error).message}`);
@@ -134,7 +173,11 @@ export default function App() {
       <main className="page">
         <header className="header">
           <h1>{TITLES[page]}</h1>
-          {!summary && <p className="muted small">세이브 파일은 이 브라우저 안에서만 읽고, 서버로 보내지 않습니다.</p>}
+          {!summary && (
+            <p className="muted small">
+              세이브 파일은 이 브라우저 안에서만 읽고, 서버로 보내지 않습니다. 불러온 세이브는 새로고침해도 남도록 이 브라우저에 보관됩니다.
+            </p>
+          )}
         </header>
 
         {summary ? (
@@ -143,11 +186,14 @@ export default function App() {
             <span>
               <b>트레이너 {summary.trainerId}</b>
             </span>
-            <span>스타터 {summary.starters.length}종</span>
-            <span>클래식 미클리어 {summary.starters.filter((s) => s.classicWins === 0).length}종</span>
-            {summary.stats.highestEndlessWave != null && (
-              <span>무한 최고 {summary.stats.highestEndlessWave.toLocaleString()}층</span>
-            )}
+            <span title="보유한 스타터 / 게임의 전체 스타터">
+              스타터 {summary.starters.length}
+              {dex && <span className="muted"> / {dex.starterCount}</span>}
+            </span>
+            <span title="클래식 모드(챌린지 포함)를 클리어한 횟수">
+              클래식 클리어 {(summary.stats.sessionsWon ?? 0).toLocaleString()}회
+            </span>
+            <span>무한모드 최고 {(summary.stats.highestEndlessWave ?? 0).toLocaleString()}층</span>
             <span className="muted" title={`게임 ${summary.gameVersion}`}>
               {summary.savedAt.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" })} 저장
             </span>
@@ -155,6 +201,9 @@ export default function App() {
               <span className="error">도감에 없는 스타터 {summary.unmatched.length}종</span>
             )}
             <SaveUpload disabled={!dex} onFile={handleFile} compact />
+            <button className="save-forget" onClick={forgetSave} title="이 브라우저에 보관한 세이브를 지웁니다">
+              세이브 지우기
+            </button>
           </section>
         ) : (
           <SaveUpload disabled={!dex} onFile={handleFile} />

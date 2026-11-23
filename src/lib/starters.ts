@@ -10,6 +10,7 @@ import {
   starterCost,
   unlockedNatures,
 } from "./rules";
+import { parseRibbons } from "./ribbons";
 
 export interface EggMoveInfo {
   fid: number;
@@ -47,6 +48,8 @@ export interface OwnedStarter {
   candy: number;
   friendship: number;
   classicWins: number;
+  /** 리본 비트 (lib/ribbons.ts 의 RIBBONS) */
+  ribbons: bigint;
   /** 같은 진화 계열의 모든 형태 (진화·메가·거다이 포함) */
   family: DexSpecies[];
   /** 계열 안에서 가장 높은 종족값 (완전진화·메가 기준 평가용) */
@@ -149,6 +152,7 @@ export function buildSummary(save: RawSave, dex: Dex): SaveSummary {
       candy: entry.$x ?? 0,
       friendship: entry.$f ?? 0,
       classicWins: entry.$wc ?? 0,
+      ribbons: parseRibbons(dexEntry.ribbons),
       family,
       maxBst: Math.max(...family.map((f) => f.bst)),
       formStatus: Object.fromEntries(family.map((f) => [f.idx, formStatusOf(save, dex, f)])),

@@ -1,0 +1,60 @@
+import fs from "node:fs";
+import path from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import { Dex, typesInGameOrder, type DexData } from "./dex";
+import { RIBBONS, cleared, eligible, hasRibbon, parseRibbons, type ClearCriterion } from "./ribbons";
+import { decryptSave } from "./save";
+import { buildSummary, type SaveSummary } from "./starters";
+
+const root = path.resolve(import.meta.dirname, "../..");
+const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
+
+describe("리본 정의", () => {
+  it("게임의 리본 39종, 비트가 겹치지 않는다", () => {
+    expect(RIBBONS.length).toBe(39);
+    expect(new Set(RIBBONS.map((r) => r.bit)).size).toBe(39);
+    expect(new Set(RIBBONS.map((r) => r.key)).size).toBe(39);
+  });
+
+  it("16진수 문자열을 읽는다", () => {
+    const r = parseRibbons("28000001"); // 클래식 + 친밀 맥스 + 단일 노말
+    expect(hasRibbon(r, 27)).toBe(true);
+    expect(hasRibbon(r, 29)).toBe(true);
+    expect(hasRibbon(r, 0)).toBe(true);
+    expect(hasRibbon(r, 1)).toBe(false);
+    expect(parseRibbons(undefined)).toBe(0n);
+    expect(parseRibbons("zz")).toBe(0n);
+  });
+});
+
+function findSave(): string | undefined {
+  if (process.env.SAVE_PATH) return process.env.SAVE_PATH;
+  const dir = path.join(root, "testdata");
+  if (!fs.existsSync(dir)) return undefined;
+  const f = fs.readdirSync(dir).find((n) => n.endsWith(".prsv"));
+  return f && path.join(dir, f);
+}
+
+const savePath = findSave();
+describe.skipIf(!savePath)("실제 세이브 리본", () => {
+  let summary: SaveSummary;
+  beforeAll(() => {
+    summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
+  });
+
+  it("리본으로 클리어한 스타터는 그 챌린지에 도전할 수 있는 스타터다 (세대·타입 판정이 게임과 맞다)", () => {
+    const criteria: ClearCriterion[] = [
+      ...Array.from({ length: 9 }, (_, i) => ({ mode: "gen" as const, gen: i + 1 })),
+      ...typesInGameOrder(dex).map((type) => ({ mode: "type" as const, type })),
+    ];
+    for (const c of criteria) {
+      for (const s of summary.starters) {
+        if (cleared(s, c, dex)) expect(eligible(s, c), `${s.name} ${JSON.stringify(c)}`).toBe(true);
+      }
+    }
+  });
+
+  it("클래식 리본이 있으면 클래식 클리어 횟수도 있다", () => {
+    for (const s of summary.starters) if (hasRibbon(s.ribbons, 27)) expect(s.classicWins, s.name).toBeGreaterThan(0);
+  });
+});

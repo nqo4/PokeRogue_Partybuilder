@@ -122,6 +122,11 @@ export function typesInGameOrder(dex: Dex): number[] {
   return all.sort((a, b) => rank(a) - rank(b));
 }
 
+/** 타입 fid → 게임의 타입 번호 (PokemonType: 노말 0 … 페어리 17). 단일 타입 리본 비트와 같다 */
+export function gameTypeIndex(dex: Dex, fid: number): number {
+  return GAME_TYPE_ORDER.indexOf(dex.name(fid));
+}
+
 export const FORM_NAMES = ["기본", "메가", "신규 메가", "거다이맥스", "변형"] as const;
 
 export class Dex {
@@ -148,6 +153,11 @@ export class Dex {
       const prev = this.starterById.get(s.id);
       if (!prev || (prev.img !== String(s.id) && s.img === String(s.id))) this.starterById.set(s.id, s);
     }
+  }
+
+  /** 게임의 스타터 수 (스타팅 화면에서 고를 수 있는 종) */
+  get starterCount(): number {
+    return this.starterById.size;
   }
 
   get species(): DexSpecies[] {

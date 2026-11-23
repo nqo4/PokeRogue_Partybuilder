@@ -374,6 +374,11 @@ tr.current > td { background: var(--hover); }
   background: var(--bg); color: var(--text); font-size: 0.85rem; font-weight: 600;
 }
 .upload.compact:hover { border-color: var(--accent); }
+.save-forget {
+  padding: 5px 10px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--muted);
+  font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+.save-forget:hover { border-color: var(--border); color: var(--c-red); }
 .upload:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* 좁은 화면: 왼쪽 위 햄버거 버튼을 누르면 메뉴가 왼쪽에서 밀려 나온다 */
@@ -702,3 +707,31 @@ tr.current > td { background: var(--hover); }
 .unlock-item { display: inline-flex; align-items: center; gap: 6px; }
 .carry-chip select { padding: 2px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }
 .modal.evo-picker { max-width: 560px; }
+
+/* 보유 현황: 클리어 기준 고르기 */
+.criterion-chip {
+  padding: 5px 10px; border: 1px solid var(--accent); border-radius: 999px; background: var(--surface);
+  color: var(--accent); font: inherit; font-size: 0.9rem; cursor: pointer;
+}
+.criterion-chip:hover { background: var(--hover); }
+.modal.criterion { width: min(520px, 100%); margin-top: 8vh; }
+.criterion-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.criterion-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.criterion-option {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); cursor: pointer;
+}
+.criterion-grid .criterion-option { flex-wrap: wrap; gap: 2px 8px; padding: 8px 10px; }
+.criterion-grid .criterion-option .muted { width: 100%; padding-left: 24px; }
+.criterion-option:hover { background: var(--hover); }
+.criterion-option.checked { border-color: var(--accent); background: var(--hover); font-weight: 600; }
+.criterion-option > .muted { margin-left: auto; font-weight: 400; }
+.criterion-option input { accent-color: var(--accent); margin: 0; }
+.criterion-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.criterion-actions button:not(.primary) {
+  padding: 7px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
+  font: inherit; cursor: pointer;
+}
+@media (max-width: 600px) {
+  .criterion-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

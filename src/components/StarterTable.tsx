@@ -7,6 +7,8 @@ import { STAT_NAMES } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
 import { SearchInput } from "./SearchInput";
 import { CostValue } from "./CostValue";
+import { ClearCriterionDialog } from "./ClearCriterionDialog";
+import { CLASSIC, cleared, criterionLabel, eligible, type ClearCriterion } from "../lib/ribbons";
 
 /** 이 형태에서 잡을 수 있는 이로치 단계를 다 모았는가 */
 const shinyComplete = (mask: number, variants: 1 | 3) => (mask & (variants === 3 ? 7 : 1)) === (variants === 3 ? 7 : 1);
@@ -50,14 +52,19 @@ type View = "list" | "grid";
 type ClearFilter = "all" | "cleared" | "uncleared" | "missingForm" | "missingShiny";
 const CLEAR_FILTERS: [ClearFilter, string][] = [
   ["all", "전체"],
-  ["cleared", "클래식 클리어"],
-  ["uncleared", "클래식 미클리어"],
+  ["cleared", "클리어"],
+  ["uncleared", "미클리어"],
   ["missingForm", "못 잡은 형태 있음"],
   ["missingShiny", "못 모은 이로치 단계 있음"],
 ];
 
 export function StarterTable({ starters, dex, onOpen }: Props) {
   const [clear, setClear] = useState<ClearFilter>("uncleared");
+  /** 클리어·미클리어를 따지는 기준 (클래식, 단일 세대, 단일 타입) */
+  const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
+  /** 기준 팝업. 클리어·미클리어를 새로 고르면 열고, 그 선택은 적용할 때 반영한다 */
+  const [picking, setPicking] = useState<ClearFilter | null>(null);
+  const byClear = clear === "cleared" || clear === "uncleared";
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
   const [form, setForm] = useState<FormFilter>("all");
@@ -85,8 +92,8 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
     const list = starters.filter(
       (s) =>
         (clear === "all" ||
-          (clear === "cleared" && s.classicWins > 0) ||
-          (clear === "uncleared" && s.classicWins === 0) ||
+          (clear === "cleared" && eligible(s, criterion) && cleared(s, criterion, dex)) ||
+          (clear === "uncleared" && eligible(s, criterion) && !cleared(s, criterion, dex)) ||
           (clear === "missingForm" && s.family.some((f) => s.formStatus[f.idx] !== "caught")) ||
           (clear === "missingShiny" && !shinyComplete(s.shinyTiers, s.dex.variants))) &&
         (!gen || s.gen === gen) &&
@@ -98,7 +105,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
     const value = (s: OwnedStarter) => (sort === "id" ? s.speciesId : s[sort]);
     const dir = desc ? -1 : 1;
     return list.sort((a, b) => (value(a) - value(b)) * dir || a.speciesId - b.speciesId);
-  }, [starters, clear, gen, type, form, query, sort, desc]);
+  }, [starters, dex, clear, criterion, gen, type, form, query, sort, desc]);
 
   const typeBadge = (fid: number) => (
     <span key={fid} className="type" style={typeStyle(dex.data.typeColors[fid])}>
@@ -109,13 +116,39 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
   return (
     <section>
       <div className="filters">
-        <select value={clear} onChange={(e) => setClear(e.target.value as ClearFilter)}>
+        <select
+          value={clear}
+          aria-label="클리어 여부"
+          onChange={(e) => {
+            const v = e.target.value as ClearFilter;
+            if (v === "cleared" || v === "uncleared") setPicking(v);
+            else setClear(v);
+          }}
+        >
           {CLEAR_FILTERS.map(([k, l]) => (
             <option key={k} value={k}>
               {l}
             </option>
           ))}
         </select>
+        {byClear && (
+          <button className="criterion-chip" onClick={() => setPicking(clear)} title="클리어 기준 바꾸기">
+            기준: {criterionLabel(criterion, dex)} ▾
+          </button>
+        )}
+        {picking && (
+          <ClearCriterionDialog
+            dex={dex}
+            starters={starters}
+            value={criterion}
+            onApply={(c) => {
+              setCriterion(c);
+              setClear(picking);
+              setPicking(null);
+            }}
+            onClose={() => setPicking(null)}
+          />
+        )}
         <select value={gen} onChange={(e) => setGen(Number(e.target.value))}>
           <option value={0}>전체 세대</option>
           {Array.from({ length: 9 }, (_, i) => (
