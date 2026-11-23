@@ -49,22 +49,26 @@ interface Props {
 
 type View = "list" | "grid";
 
-type ClearFilter = "all" | "cleared" | "uncleared" | "missingForm" | "missingShiny";
+type ClearFilter = "all" | "cleared" | "uncleared";
 const CLEAR_FILTERS: [ClearFilter, string][] = [
-  ["all", "전체"],
+  ["all", "클리어 여부: 전체"],
   ["cleared", "클리어"],
   ["uncleared", "미클리어"],
+];
+
+type CatchFilter = "all" | "missingForm" | "missingShiny";
+const CATCH_FILTERS: [CatchFilter, string][] = [
+  ["all", "포획 여부: 전체"],
   ["missingForm", "못 잡은 형태 있음"],
   ["missingShiny", "못 모은 이로치 단계 있음"],
 ];
 
 export function StarterTable({ starters, dex, onOpen }: Props) {
   const [clear, setClear] = useState<ClearFilter>("uncleared");
-  /** 클리어·미클리어를 따지는 기준 (클래식, 단일 세대, 단일 타입) */
+  /** 게임 종류: 클리어 여부를 따지는 기준 (클래식, 단일 세대, 단일 타입). 챌린지면 도전할 수 있는 스타터만 보인다 */
   const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
-  /** 기준 팝업. 클리어·미클리어를 새로 고르면 열고, 그 선택은 적용할 때 반영한다 */
-  const [picking, setPicking] = useState<ClearFilter | null>(null);
-  const byClear = clear === "cleared" || clear === "uncleared";
+  const [picking, setPicking] = useState(false);
+  const [catchState, setCatchState] = useState<CatchFilter>("all");
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
   const [form, setForm] = useState<FormFilter>("all");
@@ -91,21 +95,22 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
     const q = query.trim();
     const list = starters.filter(
       (s) =>
-        (clear === "all" ||
-          (clear === "cleared" && eligible(s, criterion) && cleared(s, criterion, dex)) ||
-          (clear === "uncleared" && eligible(s, criterion) && !cleared(s, criterion, dex)) ||
-          (clear === "missingForm" && s.family.some((f) => s.formStatus[f.idx] !== "caught")) ||
-          (clear === "missingShiny" && !shinyComplete(s.shinyTiers, s.dex.variants))) &&
-        (!gen || s.gen === gen) &&
+        eligible(s, criterion) &&
+        (clear === "all" || (clear === "cleared") === cleared(s, criterion, dex)) &&
+        (catchState === "all" ||
+          (catchState === "missingForm" && s.family.some((f) => s.formStatus[f.idx] !== "caught")) ||
+          (catchState === "missingShiny" && !shinyComplete(s.shinyTiers, s.dex.variants))) &&
+        // 세대·타입 챌린지를 고르면 같은 종류의 필터는 숨기고 적용하지 않는다 (챌린지가 이미 거른다)
+        (!gen || criterion.mode === "gen" || s.gen === gen) &&
         // 단일 타입 챌린지처럼, 진화·폼 변화로 얻는 타입까지 포함해서 거른다
-        (type < 0 || s.family.some((f) => f.types.includes(type))) &&
+        (type < 0 || criterion.mode === "type" || s.family.some((f) => f.types.includes(type))) &&
         formMatch(s.family, form) &&
         (!q || s.name.includes(q) || s.family.some((f) => f.name.includes(q))),
     );
     const value = (s: OwnedStarter) => (sort === "id" ? s.speciesId : s[sort]);
     const dir = desc ? -1 : 1;
     return list.sort((a, b) => (value(a) - value(b)) * dir || a.speciesId - b.speciesId);
-  }, [starters, dex, clear, criterion, gen, type, form, query, sort, desc]);
+  }, [starters, dex, clear, criterion, catchState, gen, type, form, query, sort, desc]);
 
   const typeBadge = (fid: number) => (
     <span key={fid} className="type" style={typeStyle(dex.data.typeColors[fid])}>
@@ -116,26 +121,16 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
   return (
     <section>
       <div className="filters">
-        <select
-          value={clear}
-          aria-label="클리어 여부"
-          onChange={(e) => {
-            const v = e.target.value as ClearFilter;
-            if (v === "cleared" || v === "uncleared") setPicking(v);
-            else setClear(v);
-          }}
-        >
+        <select value={clear} aria-label="클리어 여부" onChange={(e) => setClear(e.target.value as ClearFilter)}>
           {CLEAR_FILTERS.map(([k, l]) => (
             <option key={k} value={k}>
               {l}
             </option>
           ))}
         </select>
-        {byClear && (
-          <button className="criterion-chip" onClick={() => setPicking(clear)} title="클리어 기준 바꾸기">
-            기준: {criterionLabel(criterion, dex)} ▾
-          </button>
-        )}
+        <button className="criterion-chip" onClick={() => setPicking(true)} aria-haspopup="dialog" title="게임 종류 고르기">
+          게임 종류: {criterionLabel(criterion, dex)} ▾
+        </button>
         {picking && (
           <ClearCriterionDialog
             dex={dex}
@@ -143,28 +138,38 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
             value={criterion}
             onApply={(c) => {
               setCriterion(c);
-              setClear(picking);
-              setPicking(null);
+              setPicking(false);
             }}
-            onClose={() => setPicking(null)}
+            onClose={() => setPicking(false)}
           />
         )}
-        <select value={gen} onChange={(e) => setGen(Number(e.target.value))}>
-          <option value={0}>전체 세대</option>
-          {Array.from({ length: 9 }, (_, i) => (
-            <option key={i} value={i + 1}>
-              {i + 1}세대
+        <select value={catchState} aria-label="포획 여부" onChange={(e) => setCatchState(e.target.value as CatchFilter)}>
+          {CATCH_FILTERS.map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
             </option>
           ))}
         </select>
-        <select value={type} onChange={(e) => setType(Number(e.target.value))}>
-          <option value={-1}>전체 타입</option>
-          {typesInGameOrder(dex).map((t) => (
-            <option key={t} value={t}>
-              {dex.name(t)} (진화·폼 포함)
-            </option>
-          ))}
-        </select>
+        {criterion.mode !== "gen" && (
+          <select value={gen} onChange={(e) => setGen(Number(e.target.value))}>
+            <option value={0}>전체 세대</option>
+            {Array.from({ length: 9 }, (_, i) => (
+              <option key={i} value={i + 1}>
+                {i + 1}세대
+              </option>
+            ))}
+          </select>
+        )}
+        {criterion.mode !== "type" && (
+          <select value={type} onChange={(e) => setType(Number(e.target.value))}>
+            <option value={-1}>전체 타입</option>
+            {typesInGameOrder(dex).map((t) => (
+              <option key={t} value={t}>
+                {dex.name(t)} (진화·폼 포함)
+              </option>
+            ))}
+          </select>
+        )}
         <select value={form} onChange={(e) => setForm(e.target.value as FormFilter)}>
           {FORM_FILTERS.map(([k, label]) => (
             <option key={k} value={k}>

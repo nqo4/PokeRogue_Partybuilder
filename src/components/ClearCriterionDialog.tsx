@@ -1,4 +1,4 @@
-// 클리어 기준 고르기 팝업: 모드(클래식·챌린지) → 챌린지 종류(단일 세대·단일 타입) → 세대·타입.
+// 게임 종류 고르기 팝업 (클리어 여부를 따지는 기준): 모드(클래식·챌린지) → 챌린지 종류(단일 세대·단일 타입) → 세대·타입.
 // 단계마다 라디오 버튼으로 고르고, 뒤로 가기로 앞 단계로 돌아간다.
 import { useEffect, useState } from "react";
 import { typesInGameOrder, type Dex } from "../lib/dex";
@@ -60,14 +60,14 @@ export function ClearCriterionDialog({ dex, starters, value, onApply, onClose }:
   );
 
   const heading =
-    step === "mode" ? "어떤 모드의 클리어를 볼까요?" : step === "challenge" ? "챌린지 종류" : challenge === "gen" ? "세대 고르기" : "타입 고르기";
+    step === "mode" ? "어떤 게임의 클리어 여부를 볼까요?" : step === "challenge" ? "챌린지 종류" : challenge === "gen" ? "세대 고르기" : "타입 고르기";
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal criterion" role="dialog" aria-modal="true" aria-labelledby="criterion-title">
         <header className="modal-head">
           <div>
-            <h2 id="criterion-title">클리어 기준</h2>
+            <h2 id="criterion-title">게임 종류</h2>
             <span className="muted small">{heading}</span>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="닫기">
