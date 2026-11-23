@@ -284,9 +284,15 @@ table.family th.num, table.family td.num { text-align: right; }
 .modal-head > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .modal-close { align-self: flex-start; border: none; background: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; }
 .modal-close:hover { color: var(--text); }
-.iv-table { border-collapse: collapse; font-size: 0.85rem; margin-bottom: 6px; }
-.iv-table th { padding: 2px 6px; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
-.iv-table td { padding: 2px 6px; text-align: center; color: var(--muted); }
+/* 종족값·개체치: 칸마다 테두리를 친 표 */
+.iv-table {
+  border-collapse: separate; border-spacing: 0; font-size: 0.85rem; margin-bottom: 10px;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface);
+}
+.iv-table th, .iv-table td { border-right: 1px solid var(--border); }
+.iv-table th:last-child, .iv-table td:last-child { border-right: none; }
+.iv-table th { padding: 4px 8px; font-size: 0.75rem; color: var(--muted); font-weight: 600; background: var(--hover); border-bottom: 1px solid var(--border); }
+.iv-table td { padding: 4px 8px; text-align: center; color: var(--muted); min-width: 2.2em; }
 .iv-table td.iv-max { color: var(--text); font-weight: 700; }
 
 /* ── 잡지 못한 형태 */
@@ -536,7 +542,10 @@ tr.current > td { background: var(--hover); }
 .egg-tag { margin-left: 4px; padding: 0 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: var(--c-teal); border: 1px solid currentColor; }
 
 /* ── 성격 바둑판 (행 상승 · 열 하강) */
-.nature-grid { border-collapse: separate; border-spacing: 3px; font-size: 0.85rem; width: 100%; max-width: 560px; table-layout: fixed; }
+.nature-grid {
+  border-collapse: separate; border-spacing: 3px; font-size: 0.85rem; width: 100%; max-width: 560px; table-layout: fixed;
+  border: 1px solid var(--border); border-radius: 10px; padding: 4px; background: var(--surface);
+}
 .nature-grid th { font-weight: 600; color: var(--muted); padding: 3px 2px; }
 .nature-grid thead th { background: var(--hover); border-radius: 4px; }
 .nature-grid tbody th { background: var(--hover); border-radius: 4px; text-align: center; }
@@ -544,6 +553,17 @@ tr.current > td { background: var(--hover); }
 .nature-grid td.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--text); font-weight: 700; }
 .nature-grid td.off { color: var(--muted); opacity: 0.45; }
 .nature-grid td.neutral { font-style: italic; }
+.nature-grid td.best, .nature-grid td.fallback { cursor: help; }
+.nature-tip-caption { display: block; margin-top: 2px; color: var(--c-gold); font-weight: 700; }
+:root[data-theme="dark"] .nature-tip-caption { color: #8a6400; }
+:root:not([data-theme="dark"]) .nature-tip-caption { color: #f0c94a; }
+/* 추천 성격: 칸 강조 (보유 여부와 상관없이), 보유 중 차선책: 글자만 은은하게 */
+.nature-grid td.best { box-shadow: inset 0 0 0 2px var(--c-gold); background: color-mix(in srgb, var(--c-gold) 22%, var(--surface)); opacity: 1; }
+.nature-grid td.best.off { color: var(--text); }
+.nature-grid td.fallback { color: var(--c-gold); text-shadow: 0 0 6px color-mix(in srgb, var(--c-gold) 55%, transparent); }
+.nature-legend { margin: 6px 0 0; }
+.nature-legend .legend-best { padding: 0 6px; border-radius: 4px; box-shadow: inset 0 0 0 2px var(--c-gold); background: color-mix(in srgb, var(--c-gold) 22%, var(--surface)); color: var(--text); font-weight: 700; }
+.nature-legend .legend-fallback { color: var(--c-gold); font-weight: 700; text-shadow: 0 0 6px color-mix(in srgb, var(--c-gold) 55%, transparent); }
 .nature-grid .corner { position: relative; height: 2.2em; background: none !important; font-size: 0.7rem; }
 .nature-grid .corner .up { position: absolute; left: 3px; bottom: 2px; }
 .nature-grid .corner .down { position: absolute; right: 3px; top: 2px; }

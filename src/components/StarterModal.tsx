@@ -1,6 +1,7 @@
 // 포켓몬(형태) 상세 화면. 목록 위에 겹쳐 띄워서, 닫으면 목록의 필터·스크롤이 그대로 남는다.
 // 진화형·메가 등 어떤 형태든 열 수 있고, 세이브가 있으면 그 계열 스타터의 해금 상태를 함께 보여준다.
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { typeStyle } from "../lib/color";
 import type { Dex, DexSpecies } from "../lib/dex";
 import { FORM_NAMES } from "../lib/dex";
@@ -15,6 +16,7 @@ import { ItemIcon, ItemText } from "./ItemIcon";
 import { CostValue } from "./CostValue";
 import { CandyIcon } from "./CandyIcon";
 import { friendshipCap } from "../lib/rules";
+import { adviseNature, natureCaption } from "../lib/natureAdvice";
 
 export const STAT_NAMES = ["HP", "공격", "방어", "특공", "특방", "스피드"];
 export const STATUS_LABEL: Record<FormStatus, string> = { caught: "잡음", seen: "발견만", unseen: "미발견" };
@@ -235,7 +237,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
             {owned && (
               <div>
                 <h3>해금 성격 {owned.natures.length}/25</h3>
-                <NatureGrid unlocked={owned.natures} />
+                <NatureGrid unlocked={owned.natures} stats={species.stats} />
               </div>
             )}
             <MovesPanel species={species} dex={dex} />
@@ -315,9 +317,14 @@ const NATURE_AXIS = ["공격", "방어", "특공", "특방", "스피드"] as con
 const AXIS_TO_GAME = [0, 1, 3, 4, 2] as const;
 
 /** 해금 성격 바둑판: 행 = 올리는 능력치, 열 = 내리는 능력치. 대각선은 무보정 성격 */
-function NatureGrid({ unlocked }: { unlocked: number[] }) {
+function NatureGrid({ unlocked, stats }: { unlocked: number[]; stats: readonly number[] }) {
   const has = new Set(unlocked);
+  const advice = adviseNature(stats, unlocked);
+  const best = new Set(advice.best);
+  /** 추천·차선책 칸에 마우스를 올렸을 때 보여 줄 쓰임새 캡션 */
+  const [tip, setTip] = useState<{ n: number; x: number; y: number } | null>(null);
   return (
+    <>
     <table className="nature-grid">
       <thead>
         <tr>
@@ -338,11 +345,22 @@ function NatureGrid({ unlocked }: { unlocked: number[] }) {
             <th scope="row">{up}</th>
             {NATURE_AXIS.map((down, c) => {
               const n = AXIS_TO_GAME[r] * 5 + AXIS_TO_GAME[c];
+              const marked = best.has(n) || advice.fallback === n;
               return (
                 <td
                   key={down}
-                  className={`${has.has(n) ? "on" : "off"}${r === c ? " neutral" : ""}`}
-                  title={`${NATURE_NAMES[n]} — ${r === c ? "무보정" : `${up}↑ ${down}↓`} · ${has.has(n) ? "해금" : "미해금"}`}
+                  className={`${has.has(n) ? "on" : "off"}${r === c ? " neutral" : ""}${best.has(n) ? " best" : ""}${advice.fallback === n ? " fallback" : ""}`}
+                  title={marked ? undefined : `${NATURE_NAMES[n]} — ${r === c ? "무보정" : `${up}↑ ${down}↓`} · ${has.has(n) ? "해금" : "미해금"}`}
+                  aria-label={marked ? `${NATURE_NAMES[n]}, ${best.has(n) ? "추천 성격" : "보유 중 차선책"}: ${natureCaption(n)}` : undefined}
+                  onMouseEnter={
+                    marked
+                      ? (e) => {
+                          const rc = e.currentTarget.getBoundingClientRect();
+                          setTip({ n, x: Math.min(Math.max(rc.left + rc.width / 2, 150), window.innerWidth - 150), y: rc.top });
+                        }
+                      : undefined
+                  }
+                  onMouseLeave={marked ? () => setTip(null) : undefined}
                 >
                   {NATURE_NAMES[n]}
                 </td>
@@ -352,6 +370,25 @@ function NatureGrid({ unlocked }: { unlocked: number[] }) {
         ))}
       </tbody>
     </table>
+    {tip &&
+      createPortal(
+        <span className="sprite-tip" style={{ left: tip.x, top: tip.y }}>
+          {/* 성격 번호 = 올리는 능력치 × 5 + 내리는 능력치 이라 0·6·12·18·24 가 무보정 */}
+          <b>{NATURE_NAMES[tip.n]}</b> {tip.n % 6 === 0 && "(무보정) "}· {best.has(tip.n) ? "추천 성격" : "보유 중 차선책"}
+          <span className="nature-tip-caption">{natureCaption(tip.n)}</span>
+        </span>,
+        document.body,
+      )}
+    <p className="nature-legend small muted">
+      <span className="legend-best">추천 성격</span> {advice.why} 기준
+      {advice.fallback != null && (
+        <>
+          {" "}· <span className="legend-fallback">{NATURE_NAMES[advice.fallback]}</span> 추천 성격이 없어 보유 성격 중 차선책
+        </>
+      )}
+      {" "}· 칸에 마우스를 올리면 쓰임새 · 흐린 글자 = 미보유 · 기울임 = 무보정
+    </p>
+    </>
   );
 }
 
@@ -363,9 +400,13 @@ const TM_TIERS = [
   ["ultra", "하이퍼"],
 ] as const;
 
-/** 레벨업(자속기) / 기술머신으로 배우는 기술 목록. 버튼으로 고르고 목록은 칸 안에서 스크롤한다 */
+/**
+ * 레벨업 / 기술머신으로 배우는 기술 목록. 처음에는 버튼만 보이고, 버튼을 누르면 그 목록을 펼친다(칸 안에서 스크롤).
+ * 펼친 버튼을 다시 누르면 접는다.
+ */
 function MovesPanel({ species, dex }: { species: DexSpecies; dex: Dex }) {
-  const [tab, setTab] = useState<"level" | "tm">("level");
+  const [tab, setTab] = useState<"level" | "tm" | null>(null);
+  const toggle = (t: "level" | "tm") => setTab((cur) => (cur === t ? null : t));
   const entries = Object.entries(species.moves).map(([k, code]) => ({ fid: Number(k), code }));
   // 진화 시 → 레벨 순 → 기억버섯
   const order = (c: number) => (c === 0 ? -0.5 : c === -1 ? 999 : c);
@@ -382,14 +423,15 @@ function MovesPanel({ species, dex }: { species: DexSpecies; dex: Dex }) {
       <div className="moves-head">
         <h3>배우는 기술</h3>
         <span className="view-toggle" role="group" aria-label="기술 목록">
-          <button className={tab === "level" ? "active" : ""} aria-pressed={tab === "level"} onClick={() => setTab("level")} title="레벨업으로 배우는 기술">
-            자속기 보기 ({level.length})
+          <button className={tab === "level" ? "active" : ""} aria-pressed={tab === "level"} aria-expanded={tab === "level"} onClick={() => toggle("level")} title={tab === "level" ? "접기" : "레벨업으로 배우는 기술 펼치기"}>
+            레벨업 기술 보기 ({level.length})
           </button>
-          <button className={tab === "tm" ? "active" : ""} aria-pressed={tab === "tm"} onClick={() => setTab("tm")} title="상점에 나오는 기술머신으로 배우는 기술">
+          <button className={tab === "tm" ? "active" : ""} aria-pressed={tab === "tm"} aria-expanded={tab === "tm"} onClick={() => toggle("tm")} title={tab === "tm" ? "접기" : "상점에 나오는 기술머신으로 배우는 기술 펼치기"}>
             기술머신 보기 ({tm.length})
           </button>
         </span>
       </div>
+      {tab && (
       <div className="moves-scroll" tabIndex={0} aria-label={tab === "level" ? "레벨업 기술 목록" : "기술머신 기술 목록"}>
         {rows.length ? (
           <table className="moves-table">
@@ -434,6 +476,7 @@ function MovesPanel({ species, dex }: { species: DexSpecies; dex: Dex }) {
           <p className="muted small">{tab === "level" ? "레벨업으로 배우는 기술이 없습니다." : "기술머신으로 배우는 기술이 없습니다."}</p>
         )}
       </div>
+      )}
     </div>
   );
 }
