@@ -7,8 +7,8 @@ import { STAT_NAMES } from "./StarterModal";
 import { ShinyTiers } from "./ShinyTiers";
 import { SearchInput } from "./SearchInput";
 import { CostValue } from "./CostValue";
-import { ClearCriterionDialog } from "./ClearCriterionDialog";
-import { CLASSIC, cleared, criterionLabel, eligible, type ClearCriterion } from "../lib/ribbons";
+import { GameKindButton } from "./ClearCriterionDialog";
+import { CLASSIC, cleared, eligible, type ClearCriterion } from "../lib/ribbons";
 
 /** 이 형태에서 잡을 수 있는 이로치 단계를 다 모았는가 */
 const shinyComplete = (mask: number, variants: 1 | 3) => (mask & (variants === 3 ? 7 : 1)) === (variants === 3 ? 7 : 1);
@@ -67,7 +67,6 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
   const [clear, setClear] = useState<ClearFilter>("uncleared");
   /** 게임 종류: 클리어 여부를 따지는 기준 (클래식, 단일 세대, 단일 타입). 챌린지면 도전할 수 있는 스타터만 보인다 */
   const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
-  const [picking, setPicking] = useState(false);
   const [catchState, setCatchState] = useState<CatchFilter>("all");
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
@@ -128,21 +127,7 @@ export function StarterTable({ starters, dex, onOpen }: Props) {
             </option>
           ))}
         </select>
-        <button className="criterion-chip" onClick={() => setPicking(true)} aria-haspopup="dialog" title="게임 종류 고르기">
-          게임 종류: {criterionLabel(criterion, dex)} ▾
-        </button>
-        {picking && (
-          <ClearCriterionDialog
-            dex={dex}
-            starters={starters}
-            value={criterion}
-            onApply={(c) => {
-              setCriterion(c);
-              setPicking(false);
-            }}
-            onClose={() => setPicking(false)}
-          />
-        )}
+        <GameKindButton dex={dex} starters={starters} value={criterion} onChange={setCriterion} />
         <select value={catchState} aria-label="포획 여부" onChange={(e) => setCatchState(e.target.value as CatchFilter)}>
           {CATCH_FILTERS.map(([k, l]) => (
             <option key={k} value={k}>

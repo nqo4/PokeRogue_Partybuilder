@@ -1,7 +1,7 @@
 // 리본: 세이브 dexData[종].ribbons 에 16진수 비트 문자열로 저장된다.
 // 비트 정의는 공식 클라이언트 src/system/ribbons/ribbon-data.ts, 이름은 pokerogue-locales ko/ribbons.json 과 같다.
 // 리본은 파티에 있던 포켓몬과 그 진화 전 단계 전부에 붙으므로, 스타터 종의 dexData 에서 읽으면 된다.
-import { gameTypeIndex, type Dex } from "./dex";
+import { gameTypeIndex, type Dex, type DexSpecies } from "./dex";
 import type { OwnedStarter } from "./starters";
 
 export interface RibbonDef {
@@ -56,12 +56,23 @@ export function criterionLabel(c: ClearCriterion, dex: Dex): string {
   return `챌린지 · 단일 ${dex.name(c.type)}`;
 }
 
-/** 이 기준으로 도전할 수 있는 스타터인가 (진화·폼 변화로 얻는 세대·타입 포함, 게임의 리본 목록 규칙과 같다) */
+/** 플레이어가 쓸 수 있는 형태 (스타모빌처럼 상대 전용인 별도 폼은 빼고, 진화형·폼 변화·스타팅 형태) */
+const playable = (f: DexSpecies) => f.form !== 0 || f.starter || f.img === String(f.id);
+
+/** 이 기준으로 도전할 수 있는 스타터인가 (진화·폼 변화로 얻는 세대·타입 포함, 게임의 스타터 선택 규칙과 같다) */
 export function eligible(s: OwnedStarter, c: ClearCriterion): boolean {
-  if (c.mode === "classic") return true;
-  if (c.mode === "gen") return s.family.some((f) => f.gen === c.gen);
-  return s.family.some((f) => f.types.includes(c.type));
+  return c.mode === "classic" || s.family.some((f) => playable(f) && formAllowed(f, c));
 }
+
+/** 챌린지 배틀에 나갈 수 있는 형태인가 (게임: 단일 타입은 그 타입, 단일 세대는 그 세대인 형태만 싸울 수 있다) */
+export function formAllowed(f: DexSpecies, c: ClearCriterion): boolean {
+  if (c.mode === "classic") return true;
+  if (c.mode === "gen") return f.gen === c.gen;
+  return f.types.includes(c.type);
+}
+
+/** 같은 기준인가 */
+export const sameCriterion = (a: ClearCriterion, b: ClearCriterion) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * 이 기준으로 클리어했는가.

@@ -2,7 +2,7 @@
 // 단계마다 라디오 버튼으로 고르고, 뒤로 가기로 앞 단계로 돌아간다.
 import { useEffect, useState } from "react";
 import { typesInGameOrder, type Dex } from "../lib/dex";
-import { cleared, eligible, type ClearCriterion } from "../lib/ribbons";
+import { cleared, criterionLabel, eligible, type ClearCriterion } from "../lib/ribbons";
 import type { OwnedStarter } from "../lib/starters";
 
 type Mode = "classic" | "challenge";
@@ -114,5 +114,39 @@ export function ClearCriterionDialog({ dex, starters, value, onApply, onClose }:
         </div>
       </div>
     </div>
+  );
+}
+
+/** 게임 종류 버튼 + 고르기 팝업 (보유 현황·파티 만들기·파티 추천이 같이 쓴다) */
+export function GameKindButton({
+  dex,
+  starters,
+  value,
+  onChange,
+}: {
+  dex: Dex;
+  starters: OwnedStarter[];
+  value: ClearCriterion;
+  onChange: (c: ClearCriterion) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="criterion-chip" onClick={() => setOpen(true)} aria-haspopup="dialog" title="게임 종류 고르기">
+        게임 종류: {criterionLabel(value, dex)} ▾
+      </button>
+      {open && (
+        <ClearCriterionDialog
+          dex={dex}
+          starters={starters}
+          value={value}
+          onApply={(c) => {
+            onChange(c);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }

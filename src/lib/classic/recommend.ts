@@ -4,10 +4,11 @@ import type { OwnedStarter } from "../starters";
 import { buildTypeMatrix, type TypeMatrix } from "../typeChart";
 import { CandidateBuilder, type Candidate } from "./candidate";
 import { resolveConfig, type ClassicConfig, type ResolvedConfig } from "./config";
+import { CLASSIC, cleared, eligible, formAllowed, type ClearCriterion } from "../ribbons";
 import { ROLE_THRESHOLD, analyzeParty, type FixedPosition, type PartyAnalysis } from "./party";
 
 export interface RecommendOptions {
-  /** 클래식 미클리어 포켓몬만 후보로 쓴다 */
+  /** 이 게임 종류(클래식·챌린지)를 아직 클리어하지 못한 포켓몬만 후보로 쓴다 */
   onlyUncleared: boolean;
   /** 파티 포켓몬 수 (1~6). 정확히 이 수만큼 채운다 */
   partySize?: number;
@@ -57,15 +58,24 @@ export class ClassicRecommender {
   /** 사용자가 고른 형태로 평가한 후보 ("SpeciesId:Dex idx") */
   private readonly byForm = new Map<string, Candidate>();
 
+  /**
+   * challenge 를 주면 그 챌린지 기준으로 추천한다:
+   * 도전할 수 있는 스타터만 후보로, 형태는 챌린지에 맞는 것(단일 타입이면 그 타입, 단일 세대면 그 세대)만 쓴다.
+   */
   constructor(
     private readonly dex: Dex,
     starters: OwnedStarter[],
     config?: ClassicConfig,
+    readonly challenge: ClearCriterion = CLASSIC,
   ) {
     this.cfg = resolveConfig(dex, config);
     this.chart = buildTypeMatrix(dex);
-    const builder = (this.builder = new CandidateBuilder(dex, this.cfg, this.chart));
-    this.candidates = starters.map((s) => builder.build(s));
+    const builder = (this.builder = new CandidateBuilder(dex, this.cfg, this.chart, (f) => formAllowed(f, challenge)));
+    // 챌린지에 맞는 형태가 하나도 없는 스타터는 뺀다
+    this.candidates = starters
+      .filter((s) => eligible(s, challenge))
+      .map((s) => builder.build(s))
+      .filter((c) => formAllowed(c.form, challenge));
     for (const c of this.candidates) this.byId.set(c.owned.speciesId, c);
   }
 
@@ -112,10 +122,15 @@ export class ClassicRecommender {
     const pool = this.candidates.filter(
       (c) =>
         !requiredIds.has(c.owned.speciesId) &&
-        (!opts.onlyUncleared || c.owned.classicWins === 0) &&
+        (!opts.onlyUncleared || !cleared(c.owned, this.challenge, this.dex)) &&
         c.owned.cost <= costLimit &&
         (maxForm > 0 || !hasFormChange(c)),
     );
+
+    // 남은 자리를 가장 싼 후보로 채워도 코스트를 넘는 조합은 끝까지 채울 수 없으니 일찍 버린다
+    // (비싼 포켓몬이 많은 챌린지에서 빔이 채울 수 없는 조합으로만 차는 것을 막는다)
+    const cheapest = pool.map((c) => c.owned.cost).sort((a, b) => a - b);
+    const minFill = (k: number) => cheapest.slice(0, Math.max(0, k)).reduce((a, b) => a + b, 0);
 
     type State = { members: Candidate[]; cost: number; forms: number; key: string; analysis: PartyAnalysis };
     const make = (members: Candidate[]): State => ({
@@ -155,7 +170,10 @@ export class ClassicRecommender {
       }
       // 재검색일 때 다른 조합이 살아남도록 빔을 넓게 유지한다
       const width = beamWidth * (1 + Math.min(4, Math.floor((opts.exclude?.length ?? 0) / count)));
-      beam = [...next.values()].sort((a, b) => b.analysis.score - a.analysis.score).slice(0, width);
+      beam = [...next.values()]
+        .filter((st) => st.cost + minFill(size - st.members.length) <= costLimit)
+        .sort((a, b) => b.analysis.score - a.analysis.score)
+        .slice(0, width);
       beam.forEach((s) => seen.set(s.key, s));
     }
 

@@ -4,14 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { typesInGameOrder, type Dex, type DexSpecies } from "../lib/dex";
 import { pokerusStarters } from "../lib/pokerus";
 import { useOfficial } from "./OfficialContext";
-import type { FormStatus } from "../lib/starters";
+import type { FormStatus, OwnedStarter } from "../lib/starters";
+import { CLASSIC, cleared, type ClearCriterion } from "../lib/ribbons";
+import { GameKindButton } from "./ClearCriterionDialog";
 import type { Candidate } from "../lib/classic/candidate";
 import { findings } from "../lib/classic/check";
-import { partyKey, type ClassicRecommender, type PartyRecommendation } from "../lib/classic/recommend";
+import { partyKey, type PartyRecommendation } from "../lib/classic/recommend";
 import { Sprite } from "./Sprite";
 import { CostValue } from "./CostValue";
 import { SearchInput } from "./SearchInput";
-import { PartyCard } from "./ClassicRecommender";
+import { PartyCard, type RecommenderFor } from "./ClassicRecommender";
 import { FORM_FILTERS, formMatch, type FormFilter } from "./StarterTable";
 
 const PARTY_MAX = 6;
@@ -35,27 +37,35 @@ const UNLOCKS: [UnlockKey, string][] = [
 ];
 /** 진화·폼까지 포함한 가족 중 아직 못 잡은 형태 */
 type DexFilter = "all" | "complete" | "seen" | "unseen";
-type EtcFilter = "all" | "cleared" | "uncleared" | "pokerus";
+type ClearFilter = "all" | "cleared" | "uncleared";
+type EtcFilter = "all" | "pokerus";
 type SortKey = "id" | "cost" | "name";
 
 /** 오늘(UTC) 날짜 "YYYY-MM-DD". 게임의 포켓러스는 UTC 자정에 바뀐다 */
 const todayUtc = () => new Date().toISOString().slice(0, 10);
 
 export function PartyChecker({
-  recommender,
+  recommenderFor,
+  starters,
   dex,
   status,
   typeBadge,
   onBuildFrom,
 }: {
-  recommender: ClassicRecommender;
+  recommenderFor: RecommenderFor;
+  starters: OwnedStarter[];
   dex: Dex;
   status?: Record<number, FormStatus>;
   typeBadge: (fid: number) => JSX.Element;
-  onBuildFrom: (picks: PartyPick[]) => void;
+  onBuildFrom: (picks: PartyPick[], criterion: ClearCriterion) => void;
 }) {
+  /** 게임 종류. 챌린지면 도전할 수 있는 스타터만 보이고, 형태도 챌린지에 맞는 것만 고른다 */
+  const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
+  const recommender = recommenderFor(criterion)!;
+  const ownedIds = useMemo(() => new Set(starters.map((s) => s.speciesId)), [starters]);
   const costLimit = recommender.cfg.raw.costLimit;
   const [picks, setPicks] = useState<PartyPick[]>([]);
+  const [clear, setClear] = useState<ClearFilter>("all");
   const [query, setQuery] = useState("");
   const [gen, setGen] = useState(0);
   const [type, setType] = useState(-1);
@@ -93,17 +103,16 @@ export function PartyChecker({
       const st = c.owned.family.map((f) => c.owned.formStatus[f.idx]);
       return dexState === "complete" ? st.every((s) => s === "caught") : st.includes(dexState);
     };
-    const etcOk = (c: Candidate) =>
-      etc === "all" ||
-      (etc === "cleared" && c.owned.classicWins > 0) ||
-      (etc === "uncleared" && c.owned.classicWins === 0) ||
-      (etc === "pokerus" && pokerus.includes(c.owned.speciesId));
+    const clearOk = (c: Candidate) => clear === "all" || (clear === "cleared") === cleared(c.owned, criterion, dex);
+    const etcOk = (c: Candidate) => etc === "all" || pokerus.includes(c.owned.speciesId);
     const dir = desc ? -1 : 1;
     const value = (c: Candidate) => (sort === "cost" ? c.owned.cost : c.owned.speciesId);
     return [...recommender.candidates]
       .filter(
         (c) =>
-          (!gen || c.owned.gen === gen) &&
+          // 세대·타입 챌린지를 고르면 같은 종류의 필터는 숨기고 적용하지 않는다
+          (!gen || criterion.mode === "gen" || c.owned.gen === gen) &&
+          clearOk(c) &&
           shinyOk(c.owned.shinyTiers) &&
           unlockOk(c) &&
           formMatch(c.owned.family, form) &&
@@ -116,12 +125,12 @@ export function PartyChecker({
           ? a.owned.name.localeCompare(b.owned.name, "ko") * dir
           : (value(a) - value(b)) * dir || a.owned.speciesId - b.owned.speciesId,
       );
-  }, [recommender, query, gen, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
+  }, [recommender, dex, criterion, clear, query, gen, shiny, unlock, form, dexState, etc, sort, desc, pokerus]);
 
   /** 카드는 스타터 기준. 타입은 진화형·폼 변화까지 포함해서 거른다 */
   const tiles = useMemo(
-    () => list.filter((c) => type < 0 || recommender.forms(c.owned.speciesId).some((f) => f.types.includes(type))),
-    [list, recommender, type],
+    () => list.filter((c) => type < 0 || criterion.mode === "type" || recommender.forms(c.owned.speciesId).some((f) => f.types.includes(type))),
+    [list, recommender, criterion, type],
   );
   /** 진화형을 고르는 중인 스타터 */
   const [choosing, setChoosing] = useState<Candidate | null>(null);
@@ -136,6 +145,20 @@ export function PartyChecker({
         : cost + c.owned.cost > costLimit
           ? `코스트 초과 (${cost} + ${c.owned.cost} > ${costLimit})`
           : null;
+
+  /** 게임 종류를 바꾸면, 그 게임에 나갈 수 없는 포켓몬은 파티에서 빼고 맞지 않는 형태는 맞는 형태로 바꾼다 */
+  const changeCriterion = (c: ClearCriterion) => {
+    const next = recommenderFor(c);
+    setCriterion(c);
+    if (!next) return;
+    change(
+      picks.flatMap((p) => {
+        const cand = next.candidate(p.id);
+        if (!cand) return [];
+        return [{ id: p.id, form: next.forms(p.id).some((f) => f.idx === p.form) ? p.form : cand.form.idx }];
+      }),
+    );
+  };
 
   const change = (next: PartyPick[]) => {
     setPicks(next);
@@ -195,7 +218,7 @@ export function PartyChecker({
           파티 점검
         </button>
         <button
-          onClick={() => onBuildFrom(picks)}
+          onClick={() => onBuildFrom(picks, criterion)}
           disabled={!members.length}
           title="고른 포켓몬을 넣고 나머지 자리를 파티 추천으로 채웁니다"
         >
@@ -232,22 +255,32 @@ export function PartyChecker({
       <h2 className="picker-title">보유 포켓몬</h2>
       <div className="filters picker-filters">
         <SearchInput placeholder="이름 검색" value={query} onChange={setQuery} />
-        <select value={gen} onChange={(e) => setGen(Number(e.target.value))} aria-label="세대">
-          <option value={0}>세대: 전체</option>
-          {Array.from({ length: 9 }, (_, i) => (
-            <option key={i} value={i + 1}>
-              {i + 1}세대
-            </option>
-          ))}
+        <select value={clear} onChange={(e) => setClear(e.target.value as ClearFilter)} aria-label="클리어 여부">
+          <option value="all">클리어 여부: 전체</option>
+          <option value="cleared">클리어</option>
+          <option value="uncleared">미클리어</option>
         </select>
-        <select value={type} onChange={(e) => setType(Number(e.target.value))} aria-label="타입">
-          <option value={-1}>타입: 전체</option>
-          {typesInGameOrder(dex).map((t) => (
-            <option key={t} value={t}>
-              {dex.name(t)}
-            </option>
-          ))}
-        </select>
+        <GameKindButton dex={dex} starters={starters} value={criterion} onChange={changeCriterion} />
+        {criterion.mode !== "gen" && (
+          <select value={gen} onChange={(e) => setGen(Number(e.target.value))} aria-label="세대">
+            <option value={0}>세대: 전체</option>
+            {Array.from({ length: 9 }, (_, i) => (
+              <option key={i} value={i + 1}>
+                {i + 1}세대
+              </option>
+            ))}
+          </select>
+        )}
+        {criterion.mode !== "type" && (
+          <select value={type} onChange={(e) => setType(Number(e.target.value))} aria-label="타입">
+            <option value={-1}>타입: 전체</option>
+            {typesInGameOrder(dex).map((t) => (
+              <option key={t} value={t}>
+                {dex.name(t)}
+              </option>
+            ))}
+          </select>
+        )}
         <select value={shiny} onChange={(e) => setShiny(e.target.value as ShinyFilter)} aria-label="포획 (이로치)">
           <option value="all">포획: 전체</option>
           <option value="t3">3럭 보유</option>
@@ -270,8 +303,6 @@ export function PartyChecker({
         </select>
         <select value={etc} onChange={(e) => setEtc(e.target.value as EtcFilter)} aria-label="기타">
           <option value="all">기타: 전체</option>
-          <option value="cleared">클래식 클리어</option>
-          <option value="uncleared">클래식 미클리어</option>
           <option value="pokerus">포켓러스 (고른 날짜)</option>
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="정렬">
@@ -314,10 +345,10 @@ export function PartyChecker({
         <span className="muted small">UTC 자정(한국 시간 오전 9시)에 바뀝니다</span>
         <span className="pokerus-list">
           {pokerus.map((id) => {
-            const c = recommender.candidate(id);
+            const owned = ownedIds.has(id);
             const sp = dex.byId(id);
             return (
-              <span key={id} className={`pokerus-mon${c ? "" : " not-owned"}`} title={c ? "보유" : "미보유"}>
+              <span key={id} className={`pokerus-mon${owned ? "" : " not-owned"}`} title={owned ? "보유" : "미보유"}>
                 {sp && <Sprite species={sp} size={32} />}
                 <span className="small">{sp?.name ?? id}</span>
               </span>

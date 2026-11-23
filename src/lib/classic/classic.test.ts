@@ -9,6 +9,7 @@ import { CandidateBuilder } from "./candidate";
 import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
 import { findings } from "./check";
+import { cleared, eligible, type ClearCriterion } from "../ribbons";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
@@ -199,6 +200,44 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   it("지정한 포켓몬을 반드시 포함한다", () => {
     const [r] = rec.recommend({ onlyUncleared: true, required: [287], count: 1 });
     expect(r.analysis.members.some((m) => m.owned.speciesId === 287)).toBe(true);
+  });
+});
+
+describe.skipIf(!savePath)("챌린지 파티 추천", () => {
+  let summary: SaveSummary;
+  beforeAll(() => {
+    summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
+  });
+
+  it("단일 타입: 모든 멤버의 형태(메가·거다이 포함)가 그 타입이고, 미클리어만이면 그 리본이 없다", () => {
+    const fire = dex.fid("type", "불꽃");
+    const c: ClearCriterion = { mode: "type", type: fire };
+    const rec = new ClassicRecommender(dex, summary.starters, undefined, c);
+    expect(rec.candidates.every((x) => eligible(x.owned, c))).toBe(true);
+    const rs = rec.recommend({ onlyUncleared: true, count: 3 });
+    expect(rs.length).toBeGreaterThan(0);
+    for (const r of rs) {
+      expect(r.analysis.cost).toBeLessThanOrEqual(10);
+      for (const m of r.analysis.members) {
+        expect(m.form.types, m.form.name).toContain(fire);
+        for (const f of m.specialForms) expect(f.types, f.name).toContain(fire);
+        expect(cleared(m.owned, c, dex), m.form.name).toBe(false);
+      }
+    }
+    // 이브이는 불꽃 챌린지에서 부스터로만 나간다
+    const eevee = rec.candidate(133);
+    if (eevee) {
+      expect(eevee.form.name).toBe("부스터");
+      expect(rec.forms(133).every((f) => f.types.includes(fire))).toBe(true);
+    }
+  });
+
+  it("단일 세대: 모든 멤버의 형태가 그 세대다", () => {
+    const c: ClearCriterion = { mode: "gen", gen: 3 };
+    const rec = new ClassicRecommender(dex, summary.starters, undefined, c);
+    const rs = rec.recommend({ onlyUncleared: true, count: 3 });
+    expect(rs.length).toBeGreaterThan(0);
+    for (const r of rs) for (const m of r.analysis.members) expect(m.form.gen, m.form.name).toBe(3);
   });
 });
 

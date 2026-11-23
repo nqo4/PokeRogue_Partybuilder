@@ -21,9 +21,10 @@ import { RotationView } from "./components/RotationView";
 import { SearchView } from "./components/SearchView";
 import { OfficialContext } from "./components/OfficialContext";
 import { fetchOfficial, type Official } from "./lib/official";
+import type { ClearCriterion } from "./lib/ribbons";
 
 const TITLES: Record<Page, string> = {
-  recommend: "클래식 파티 추천",
+  recommend: "파티 추천",
   check: "파티 만들기",
   rotation: "로테이션",
   search: "기술·특성·아이템 검색",
@@ -83,7 +84,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [nav, setNav] = useState<NavState>(readNav);
   /** 파티 만들기 → 파티 추천으로 넘긴 중심 포켓몬 */
-  const [partyFocus, setPartyFocus] = useState<{ picks: PartyPick[] } | null>(null);
+  const [partyFocus, setPartyFocus] = useState<{ picks: PartyPick[]; criterion: ClearCriterion } | null>(null);
 
   useEffect(() => {
     fetchDex().then(setDex, (e: Error) => setError(e.message));
@@ -228,8 +229,8 @@ export default function App() {
                       status={summary.speciesStatus}
                       mode={page === "check" ? "check" : "recommend"}
                       focus={partyFocus}
-                      onBuildFrom={(picks) => {
-                        setPartyFocus({ picks });
+                      onBuildFrom={(picks, criterion) => {
+                        setPartyFocus({ picks, criterion });
                         go({ page: "recommend", detail: null });
                         window.scrollTo(0, 0);
                       }}

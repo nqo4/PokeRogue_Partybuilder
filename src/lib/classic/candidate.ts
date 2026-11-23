@@ -112,6 +112,8 @@ export class CandidateBuilder {
     private readonly dex: Dex,
     private readonly cfg: ResolvedConfig,
     private readonly chart: TypeMatrix,
+    /** 챌린지에서 쓸 수 있는 형태인가 (단일 타입·세대 챌린지는 그 타입·세대인 형태로만 싸울 수 있다) */
+    private readonly allow: (f: DexSpecies) => boolean = () => true,
   ) {}
 
   /** 진화 갈래가 여러 개면(이브이 등) 가장 점수가 높은 갈래를 고른다. only 를 주면 그 형태로만 평가한다 */
@@ -136,7 +138,7 @@ export class CandidateBuilder {
       ...new Set(
         this.targetForms(owned).flatMap((f) => [
           f,
-          ...owned.family.filter((s) => s.id === f.id && s.form >= 1 && s.form <= 4),
+          ...owned.family.filter((s) => s.id === f.id && s.form >= 1 && s.form <= 4 && this.allow(s)),
         ]),
       ),
     ];
@@ -145,10 +147,19 @@ export class CandidateBuilder {
   private targetForms(owned: OwnedStarter): DexSpecies[] {
     const regional = owned.speciesId >= 2000;
     // 기본 이미지 키(= SpeciesId)인 형태만 진화 결과로 본다. 스타모빌 같은 별도 폼은 제외
-    const finals = owned.family.filter(
-      (f) => f.final && f.form === 0 && f.img === String(f.id) && (regional || f.id < 2000),
-    );
-    return finals.length ? finals : [owned.dex];
+    const evo = (f: DexSpecies) => f.form === 0 && f.img === String(f.id) && (regional || f.id < 2000);
+    const finals = owned.family.filter((f) => f.final && evo(f) && this.allow(f));
+    if (finals.length) return finals;
+    // 챌린지에 맞는 최종형이 없으면 맞는 진화 단계 중 종족값이 가장 높은 것
+    const byBst = (a: DexSpecies, b: DexSpecies) => b.bst - a.bst;
+    const stages = owned.family.filter((f) => evo(f) && this.allow(f)).sort(byBst);
+    if (stages.length) return [stages[0]];
+    // 폼 변화로만 챌린지에 맞는 경우 (원시회귀 그란돈, 태양의 모습 캐스퐁 등)이나 잡아 둔 다른 스타팅 형태.
+    // 스타모빌처럼 플레이어가 쓸 수 없는 별도 폼은 넣지 않는다
+    const usable = (f: DexSpecies) =>
+      (f.form >= 1 && f.form <= 4) || (f.starter && owned.formStatus[f.idx] === "caught");
+    const forms = owned.family.filter((f) => this.allow(f) && usable(f)).sort(byBst);
+    return forms.length ? [forms[0]] : [owned.dex];
   }
 
   private evaluate(owned: OwnedStarter, form: DexSpecies, focus: AbilityFocus): Candidate {
@@ -426,7 +437,7 @@ export class CandidateBuilder {
     if (nature) quality += w.goodNature;
     else notes.push(`추천 성격(${offenseStat === "atk" ? "고집·명랑" : "조심·겁쟁이"}) 미해금`);
 
-    const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4);
+    const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4 && this.allow(f));
     if (specialForms.length) {
       quality += 1;
       notes.push(`${specialForms.map((f) => f.name).join("·")} 가능`);

@@ -11,6 +11,12 @@ import type { FormStatus } from "../lib/starters";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { CostValue } from "./CostValue";
 import { PartyChecker, type PartyPick } from "./PartyChecker";
+import { GameKindButton } from "./ClearCriterionDialog";
+import { CLASSIC, cleared, type ClearCriterion } from "../lib/ribbons";
+
+/** 게임 종류별 추천기. 만들 때 후보 평가가 무거워서 한 번 만든 것은 다시 쓴다 */
+export type RecommenderFor = (c: ClearCriterion) => ClassicRecommender | null;
+
 
 interface Props {
   starters: OwnedStarter[];
@@ -19,10 +25,10 @@ interface Props {
   dex: Dex;
   /** 보여줄 화면: 파티 추천 / 내 파티 점검 (둘이 같은 추천기를 쓴다) */
   mode: "recommend" | "check";
-  /** 파티 만들기에서 고른 포켓몬을 넘겨받아 파티 추천으로 간다 */
-  onBuildFrom: (picks: PartyPick[]) => void;
+  /** 파티 만들기에서 고른 포켓몬과 게임 종류를 넘겨받아 파티 추천으로 간다 */
+  onBuildFrom: (picks: PartyPick[], criterion: ClearCriterion) => void;
   /** 넘겨받은 중심 포켓몬 (넘길 때마다 새 객체) */
-  focus: { picks: PartyPick[] } | null;
+  focus: { picks: PartyPick[]; criterion: ClearCriterion } | null;
 }
 
 const SIZES = [1, 2, 3, 4, 5, 6];
@@ -30,6 +36,8 @@ const FORM_LIMITS = [0, 1, 2, 3, 4, 5, 6];
 
 export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFrom, focus }: Props) {
   const [onlyUncleared, setOnlyUncleared] = useState(true);
+  /** 게임 종류: 클래식 또는 챌린지(단일 세대·타입). 후보·형태·미클리어 판정이 이 기준을 따른다 */
+  const [criterion, setCriterion] = useState<ClearCriterion>(CLASSIC);
   const [partySize, setPartySize] = useState(6);
   const [maxFormChange, setMaxFormChange] = useState(6);
   const [results, setResults] = useState<PartyRecommendation[] | null>(null);
@@ -48,6 +56,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
   const [lastFocus, setLastFocus] = useState(focus);
   if (focus !== lastFocus) {
     setLastFocus(focus);
+    if (focus) setCriterion(focus.criterion);
     setCarries(focus?.picks.map((p) => p.id) ?? []);
     setCarryForms(Object.fromEntries(focus?.picks.map((p) => [p.id, p.form]) ?? []));
     setCarryRoles({});
@@ -56,17 +65,27 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
     setRound(0);
   }
 
-  const recommender = useMemo(() => {
-    try {
-      return new ClassicRecommender(dex, starters);
-    } catch (e) {
-      setError((e as Error).message);
-      return null;
-    }
+  const recommenderFor = useMemo<RecommenderFor>(() => {
+    const cache = new Map<string, ClassicRecommender>();
+    return (c) => {
+      const key = JSON.stringify(c);
+      let r = cache.get(key);
+      if (!r) {
+        try {
+          r = new ClassicRecommender(dex, starters, undefined, c);
+        } catch (e) {
+          setError((e as Error).message);
+          return null;
+        }
+        cache.set(key, r);
+      }
+      return r;
+    };
   }, [dex, starters]);
+  const recommender = recommenderFor(criterion);
 
   const carryCost = carries.reduce((a, id) => a + (recommender?.candidate(id, carryForms[id])?.owned.cost ?? 0), 0);
-  const poolSize = starters.filter((s) => !onlyUncleared || s.classicWins === 0).length;
+  const poolSize = (recommender?.candidates ?? []).filter((c) => !onlyUncleared || !cleared(c.owned, criterion, dex)).length;
 
   // 조건이 바뀌면 재검색 기록을 지운다
   const reset = () => {
@@ -112,10 +131,29 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
     <section>
       {/* 두 화면을 모두 그려 두고 숨기기만 해서, 오가도 고른 파티·추천 결과가 남는다 */}
       <div hidden={mode !== "check"}>
-        {recommender && <PartyChecker recommender={recommender} dex={dex} status={status} typeBadge={typeBadge} onBuildFrom={onBuildFrom} />}
+        <PartyChecker
+          recommenderFor={recommenderFor}
+          starters={starters}
+          dex={dex}
+          status={status}
+          typeBadge={typeBadge}
+          onBuildFrom={onBuildFrom}
+        />
       </div>
       <div hidden={mode !== "recommend"}>
       <div className="filters">
+        <GameKindButton
+          dex={dex}
+          starters={starters}
+          value={criterion}
+          onChange={(c) => {
+            setCriterion(c);
+            // 이 게임 종류에 나갈 수 없는 중심 포켓몬은 뺀다
+            const next = recommenderFor(c);
+            setCarries(carries.filter((id) => next?.candidate(id)));
+            reset();
+          }}
+        />
         <label>
           <input
             type="checkbox"
@@ -125,7 +163,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
               reset();
             }}
           />
-          클래식 미클리어 포켓몬만
+          미클리어 포켓몬만
         </label>
         <label>
           파티 수{" "}
