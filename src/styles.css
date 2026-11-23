@@ -496,6 +496,15 @@ tr.current > td { background: var(--hover); }
 
 /* ── 이로치 단계 (1럭 노랑 · 2럭 파랑 · 3럭 빨강) */
 .shiny-tiers { display: inline-flex; align-items: center; gap: 1px; vertical-align: middle; }
+/* 누를 수 있는 이로치 단계: 둥근 상자. 고른 단계는 강조, 다시 누르면 원래 색 */
+.shiny-tiers.pickable { gap: 4px; }
+.shiny-pick {
+  display: inline-flex; align-items: center; justify-content: center; padding: 2px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface); cursor: pointer; line-height: 0;
+}
+.shiny-pick:hover { border-color: var(--accent); background: var(--hover); }
+.shiny-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.shiny-pick.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, var(--surface)); box-shadow: 0 0 0 1px var(--accent); }
 .sparkle rect { fill: var(--muted); }
 .sparkle:not(.owned) { opacity: 0.6; }
 .sparkle.tier-1.owned rect { fill: #e0a800; }
@@ -739,4 +748,21 @@ tr.current > td { background: var(--hover); }
 }
 @media (max-width: 600px) {
   .criterion-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* 상세: 해금 성격 + 배우는 기술 (넓으면 나란히, 좁으면 위아래) */
+.nature-moves { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 12px 24px; align-items: start; }
+.nature-moves > :only-child { grid-column: 1 / -1; }
+.moves-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.moves-head h3 { margin: 0; }
+.moves-head .view-toggle { margin-left: 0; }
+.moves-scroll { max-height: 290px; overflow-y: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.moves-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.moves-scroll > p { margin: 10px 12px; }
+.moves-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.moves-table th { position: sticky; top: 0; z-index: 1; background: var(--surface); text-align: left; font-weight: 600; color: var(--muted); }
+.moves-table th, .moves-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.moves-table tr:last-child td { border-bottom: none; }
+@media (max-width: 900px) {
+  .nature-moves { grid-template-columns: 1fr; }
 }

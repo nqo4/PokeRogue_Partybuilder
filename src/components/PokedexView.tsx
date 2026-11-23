@@ -34,6 +34,8 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
     return status?.[s.idx] === "caught" && ((shiny?.[s.id] ?? 0) & need) !== need;
   };
   const [gen, setGen] = useState(0);
+  /** 칸마다 고른 이로치 단계 (Dex idx → 0 1럭, 1 2럭, 2 3럭, null 원래 색) */
+  const [shinyPick, setShinyPick] = useState<Record<number, number | null>>({});
   const [type, setType] = useState(-1);
   const [form, setForm] = useState<FormFilter>("all");
   const [st, setSt] = useState<StatusFilter>("all");
@@ -120,7 +122,7 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
               title={ss && ss !== "caught" ? `${s.name} · ${STATUS_LABEL[ss]}` : undefined}
             >
               <span className="small muted">No.{String(nationalDex(s.id)).padStart(4, "0")}</span>
-              <Sprite species={s} size={56} />
+              <Sprite species={s} size={84} shiny={shinyPick[s.idx] != null ? shinyPick[s.idx]! + 1 : null} />
               <span className="tile-name">{s.name}</span>
               <span>
                 {s.types.map((t) => (
@@ -130,7 +132,14 @@ export function PokedexView({ dex, status, shiny, onOpen }: Props) {
                 ))}
               </span>
               {ss && ss !== "caught" && <span className="small muted">{STATUS_LABEL[ss]}</span>}
-              {ss === "caught" && shiny && <ShinyTiers mask={shiny[s.id] ?? 0} variants={s.variants} />}
+              {ss === "caught" && shiny && (
+                <ShinyTiers
+                  mask={shiny[s.id] ?? 0}
+                  variants={s.variants}
+                  selected={shinyPick[s.idx] ?? null}
+                  onSelect={(t) => setShinyPick((p) => ({ ...p, [s.idx]: t }))}
+                />
+              )}
             </button>
           );
         })}

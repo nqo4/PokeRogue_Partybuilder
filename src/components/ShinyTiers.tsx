@@ -70,6 +70,8 @@ export function ShinyTiers({
   variants,
   size = 16,
   hideEmpty = false,
+  selected = null,
+  onSelect,
 }: {
   /** 보유 단계 비트 (1럭 1, 2럭 2, 3럭 4) */
   mask: number;
@@ -79,6 +81,10 @@ export function ShinyTiers({
   size?: number;
   /** 하나도 없으면 아무것도 그리지 않는다 */
   hideEmpty?: boolean;
+  /** 고른 단계 (0 1럭, 1 2럭, 2 3럭). onSelect 가 있으면 단계마다 누를 수 있는 상자로 그린다 */
+  selected?: number | null;
+  /** 단계를 누르면 부른다. 같은 단계를 다시 누르면 null (원래 색) */
+  onSelect?: (tier: number | null) => void;
 }) {
   if (hideEmpty && !mask) return null;
   const tiers = variants === 3 ? [0, 1, 2] : [0];
@@ -87,6 +93,32 @@ export function ShinyTiers({
     variants === 1
       ? `이로치(1럭만 있음): ${owned.length ? "보유" : "미보유"}`
       : `이로치 ${tiers.map((t) => `${TIER_LABEL[t]} ${mask & (1 << t) ? "보유" : "미보유"}`).join(", ")}`;
+  if (onSelect) {
+    // 버튼 안(도감 칸)에서도 쓰므로 button 대신 role="button" 을 쓰고, 누르면 바깥 칸이 눌리지 않게 막는다
+    const pick = (e: { stopPropagation: () => void; preventDefault: () => void }, t: number) => {
+      e.stopPropagation();
+      e.preventDefault();
+      onSelect(selected === t ? null : t);
+    };
+    return (
+      <span className="shiny-tiers pickable" role="group" aria-label={label}>
+        {tiers.map((t) => (
+          <span
+            key={t}
+            role="button"
+            tabIndex={0}
+            className={`shiny-pick${selected === t ? " selected" : ""}`}
+            aria-pressed={selected === t}
+            title={`${TIER_LABEL[t]} 이로치 ${selected === t ? "끄기 (원래 색)" : "보기"}${mask & (1 << t) ? "" : " · 미보유"}`}
+            onClick={(e) => pick(e, t)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && pick(e, t)}
+          >
+            <ShinyIcon tier={t} owned={!!(mask & (1 << t))} size={size} />
+          </span>
+        ))}
+      </span>
+    );
+  }
   return (
     <span className="shiny-tiers" role="img" aria-label={label} title={label}>
       {tiers.map((t) => (

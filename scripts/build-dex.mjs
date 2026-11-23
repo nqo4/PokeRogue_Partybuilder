@@ -148,6 +148,20 @@ for (const s of species) {
   copied++;
 }
 console.log(`이미지 ${copied}장 복사${missingImages.length ? `, 없음 ${missingImages.length}장: ${missingImages.slice(0, 10).join(", ")}` : ""}`);
+
+// 이로치 이미지: {img}_1·2·3.png (1·2·3럭) → public/images/shiny/{img}_{단계}.png. 상세 화면에서 이로치를 누르면 쓴다
+const shinyOut = path.join(imgOut, "shiny");
+fs.mkdirSync(shinyOut, { recursive: true });
+let shinyCopied = 0;
+for (const s of species) {
+  for (const tier of [1, 2, 3]) {
+    const src = path.join(dexDir, "images", `${s.img}_${tier}.png`);
+    if (!fs.existsSync(src)) continue;
+    fs.copyFileSync(src, path.join(shinyOut, `${s.img}_${tier}.png`));
+    shinyCopied++;
+  }
+}
+console.log(`이로치 이미지 ${shinyCopied}장 복사`);
 console.log(
   `완료: 종/폼 ${species.length}개, 스타터 ${species.filter((s) => s.starter).length}개, ` +
     `게임 ${D.gameVersion} (${D.latestDate}), Dex ${commit.slice(0, 7)} → ${path.relative(root, outFile)} ` +

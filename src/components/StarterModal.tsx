@@ -1,12 +1,12 @@
 // 포켓몬(형태) 상세 화면. 목록 위에 겹쳐 띄워서, 닫으면 목록의 필터·스크롤이 그대로 남는다.
 // 진화형·메가 등 어떤 형태든 열 수 있고, 세이브가 있으면 그 계열 스타터의 해금 상태를 함께 보여준다.
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { typeStyle } from "../lib/color";
 import type { Dex, DexSpecies } from "../lib/dex";
 import { FORM_NAMES } from "../lib/dex";
 import { NATURE_NAMES } from "../lib/rules";
 import type { FormStatus, OwnedStarter } from "../lib/starters";
-import { Sprite, nationalDex } from "./Sprite";
+import { Sprite, SpriteSelectContext, nationalDex } from "./Sprite";
 import { ShinyTiers } from "./ShinyTiers";
 import { InfoLink, MoveLabel } from "./InfoPopup";
 import { useOfficial } from "./OfficialContext";
@@ -77,13 +77,18 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
     ["숨특", species.abilities.ha, owned?.abilities.hidden?.unlocked],
   ];
   const passiveFid = species.abilities.passive ?? owned?.dex.abilities.passive ?? null;
+  /** 머리 사진에 보여 줄 이로치 단계 (0 1럭, 1 2럭, 2 3럭, null 원래 색) */
+  const [shinyTier, setShinyTier] = useState<number | null>(null);
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-label={`${species.name} 상세`}>
         <header className="modal-head">
           <span className={myStatus && myStatus !== "caught" ? `dim-${myStatus}` : ""}>
-            <Sprite species={species} size={72} />
+            {/* 지금 보고 있는 포켓몬이라 눌러도 같은 창이므로 누를 수 없게 한다 */}
+            <SpriteSelectContext.Provider value={null}>
+              <Sprite species={species} size={108} shiny={shinyTier != null ? shinyTier + 1 : null} />
+            </SpriteSelectContext.Provider>
           </span>
           <div>
             <div className="muted small">
@@ -101,7 +106,13 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
               <span className={`atk-kind ${atk >= spa ? "phys" : "spec"}`}>{atk >= spa ? "물리형" : "특수형"}</span>
               {shiny && myStatus === "caught" && (
                 <span className="modal-shiny">
-                  <ShinyTiers mask={shiny[species.id] ?? 0} variants={species.variants} size={16} />
+                  <ShinyTiers
+                    mask={shiny[species.id] ?? 0}
+                    variants={species.variants}
+                    size={16}
+                    selected={shinyTier}
+                    onSelect={setShinyTier}
+                  />
                 </span>
               )}
             </div>
@@ -220,12 +231,15 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
               </>
             )}
           </div>
-          {owned && (
-            <div className="wide">
-              <h3>해금 성격 {owned.natures.length}/25</h3>
-              <NatureGrid unlocked={owned.natures} />
-            </div>
-          )}
+          <div className="wide nature-moves">
+            {owned && (
+              <div>
+                <h3>해금 성격 {owned.natures.length}/25</h3>
+                <NatureGrid unlocked={owned.natures} />
+              </div>
+            )}
+            <MovesPanel species={species} dex={dex} />
+          </div>
           <div className="wide">
             <h3>
               진화 계열 ({dex.familyName(species.family)}){" "}
@@ -255,7 +269,13 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
                         <td>
                           <span className="name-cell">
                             <span className="dim-target">
-                              <Sprite species={f} size={32} />
+                              {f.idx === species.idx ? (
+                                <SpriteSelectContext.Provider value={null}>
+                                  <Sprite species={f} size={32} />
+                                </SpriteSelectContext.Provider>
+                              ) : (
+                                <Sprite species={f} size={32} />
+                              )}
                             </span>
                             <span className="dim-target">{f.name}</span>
                             {st && st !== "caught" && <span className="status-tag">{STATUS_LABEL[st]}</span>}
@@ -332,5 +352,88 @@ function NatureGrid({ unlocked }: { unlocked: number[] }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+const CAT_NAMES = ["물리", "특수", "변화"] as const;
+/** 기술머신 등급: 상점 노말·슈퍼·하이퍼 */
+const TM_TIERS = [
+  ["common", "노말"],
+  ["great", "슈퍼"],
+  ["ultra", "하이퍼"],
+] as const;
+
+/** 레벨업(자속기) / 기술머신으로 배우는 기술 목록. 버튼으로 고르고 목록은 칸 안에서 스크롤한다 */
+function MovesPanel({ species, dex }: { species: DexSpecies; dex: Dex }) {
+  const [tab, setTab] = useState<"level" | "tm">("level");
+  const entries = Object.entries(species.moves).map(([k, code]) => ({ fid: Number(k), code }));
+  // 진화 시 → 레벨 순 → 기억버섯
+  const order = (c: number) => (c === 0 ? -0.5 : c === -1 ? 999 : c);
+  const level = entries.filter((e) => e.code <= 200).sort((a, b) => order(a.code) - order(b.code));
+  // 201~203 알기술+머신, 205~207 레어 알기술+머신, 209~211 머신 (각각 노말·슈퍼·하이퍼)
+  const tm = entries
+    .filter((e) => (e.code >= 201 && e.code <= 203) || (e.code >= 205 && e.code <= 207) || (e.code >= 209 && e.code <= 211))
+    .map((e) => ({ ...e, tier: (e.code - 201) % 4 }))
+    .sort((a, b) => a.tier - b.tier || dex.name(a.fid).localeCompare(dex.name(b.fid), "ko"));
+  const rows = tab === "level" ? level : tm;
+
+  return (
+    <div className="moves-panel">
+      <div className="moves-head">
+        <h3>배우는 기술</h3>
+        <span className="view-toggle" role="group" aria-label="기술 목록">
+          <button className={tab === "level" ? "active" : ""} aria-pressed={tab === "level"} onClick={() => setTab("level")} title="레벨업으로 배우는 기술">
+            자속기 보기 ({level.length})
+          </button>
+          <button className={tab === "tm" ? "active" : ""} aria-pressed={tab === "tm"} onClick={() => setTab("tm")} title="상점에 나오는 기술머신으로 배우는 기술">
+            기술머신 보기 ({tm.length})
+          </button>
+        </span>
+      </div>
+      <div className="moves-scroll" tabIndex={0} aria-label={tab === "level" ? "레벨업 기술 목록" : "기술머신 기술 목록"}>
+        {rows.length ? (
+          <table className="moves-table">
+            <thead>
+              <tr>
+                <th>{tab === "level" ? "레벨" : "머신"}</th>
+                <th>기술</th>
+                <th>분류</th>
+                <th className="num">위력</th>
+                <th className="num">명중</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((e) => {
+                const m = dex.move(e.fid);
+                return (
+                  <tr key={e.fid}>
+                    <td className="small">
+                      {"tier" in e ? (
+                        <span className={`item-name tier-${TM_TIERS[e.tier as number][0]}`}>{TM_TIERS[e.tier as number][1]}</span>
+                      ) : e.code === -1 ? (
+                        "기억버섯"
+                      ) : e.code === 0 ? (
+                        "진화 시"
+                      ) : (
+                        `Lv.${e.code}`
+                      )}
+                    </td>
+                    <td>
+                      <MoveLabel fid={e.fid} />
+                      {"tier" in e && e.code <= 207 && <span className="muted small"> {e.code >= 205 ? "레어 알기술" : "알기술"}</span>}
+                    </td>
+                    <td className="small muted">{m ? CAT_NAMES[m.cat] : ""}</td>
+                    <td className="num small">{m && m.power > 0 ? m.power : "—"}</td>
+                    <td className="num small">{m && m.acc > 0 ? m.acc : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <p className="muted small">{tab === "level" ? "레벨업으로 배우는 기술이 없습니다." : "기술머신으로 배우는 기술이 없습니다."}</p>
+        )}
+      </div>
+    </div>
   );
 }

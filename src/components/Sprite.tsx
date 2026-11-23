@@ -14,6 +14,8 @@ interface Props {
   species: DexSpecies;
   /** 칸 크기(px) */
   size?: number;
+  /** 이로치 단계 (1·2·3럭). 주면 그 단계의 이로치 이미지를 보여 준다 */
+  shiny?: number | null;
   /** 챌린지 경고 문구. 있으면 오른쪽 위에 빨간 느낌표를 달고, 마우스를 올리면 문구를 보여준다 */
   warning?: string | null;
 }
@@ -30,7 +32,7 @@ function WarnMark() {
 }
 
 /** 포켓몬 이미지. 마우스를 올리면 도감 번호와 이름을, 누르면 상세 화면을 보여준다. */
-export function Sprite({ species, size = 48, warning }: Props) {
+export function Sprite({ species, size = 48, warning, shiny }: Props) {
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const select = useContext(SpriteSelectContext);
   const no = String(nationalDex(species.id)).padStart(4, "0");
@@ -55,10 +57,17 @@ export function Sprite({ species, size = 48, warning }: Props) {
       }}
     >
       <img
-        src={`${import.meta.env.BASE_URL}images/${species.img}.png`}
-        alt={species.name}
+        key={shiny ?? 0}
+        src={`${import.meta.env.BASE_URL}images/${shiny ? `shiny/${species.img}_${shiny}` : species.img}.png`}
+        alt={shiny ? `${species.name} (${shiny}럭 이로치)` : species.name}
         loading="lazy"
-        onError={(e) => (e.currentTarget.style.visibility = "hidden")}
+        onError={(e) => {
+          // 이로치 이미지가 없으면 기본 색으로, 그것도 없으면 숨긴다
+          const img = e.currentTarget;
+          const base = `${import.meta.env.BASE_URL}images/${species.img}.png`;
+          if (shiny && !img.src.endsWith(base)) img.src = base;
+          else img.style.visibility = "hidden";
+        }}
       />
       {warning && (
         <>
