@@ -3,10 +3,10 @@
 // 세이브가 없으면 이 테스트는 건너뛴다.
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { Dex, type DexData } from "./dex";
-import { decryptSave } from "./save";
-import { buildSummary } from "./starters";
+import { decryptSave, type RawSave } from "./save";
+import { buildSummary, type SaveSummary } from "./starters";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const dex = new Dex(JSON.parse(fs.readFileSync(path.join(root, "public/data/dex.json"), "utf8")) as DexData);
@@ -34,8 +34,12 @@ describe("Dex 데이터", () => {
 
 const savePath = findSave();
 describe.skipIf(!savePath)("실제 세이브", () => {
-  const save = decryptSave(fs.readFileSync(savePath!, "utf8"));
-  const summary = buildSummary(save, dex);
+  let save: RawSave;
+  let summary: SaveSummary;
+  beforeAll(() => {
+    save = decryptSave(fs.readFileSync(savePath!, "utf8"));
+    summary = buildSummary(save, dex);
+  });
   const get = (id: number) => summary.starters.find((s) => s.speciesId === id)!;
 
   it("모든 스타터가 Dex 와 매칭된다", () => {

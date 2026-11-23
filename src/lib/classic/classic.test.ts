@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { Dex, type DexData } from "../dex";
 import { decryptSave } from "../save";
-import { buildSummary } from "../starters";
+import { buildSummary, type SaveSummary } from "../starters";
 import { buildTypeMatrix, typeMultiplier } from "../typeChart";
 import { CandidateBuilder } from "./candidate";
 import { resolveConfig } from "./config";
-import { ClassicRecommender, hasFormChange } from "./recommend";
+import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
 import { findings } from "./check";
 
 const root = path.resolve(import.meta.dirname, "../../..");
@@ -50,9 +50,14 @@ function findSave(): string | undefined {
 
 const savePath = findSave();
 describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
-  const summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
-  const rec = new ClassicRecommender(dex, summary.starters);
-  const results = rec.recommend({ onlyUncleared: true });
+  let summary: SaveSummary;
+  let rec: ClassicRecommender;
+  let results: PartyRecommendation[];
+  beforeAll(() => {
+    summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
+    rec = new ClassicRecommender(dex, summary.starters);
+    results = rec.recommend({ onlyUncleared: true });
+  });
 
   it("파티를 여러 개 돌려준다", () => {
     expect(results.length).toBeGreaterThanOrEqual(3);
@@ -198,8 +203,10 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
 });
 
 describe.skipIf(!savePath)("물리막이·특수막이", () => {
-  const summary = buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex);
-  const rec = new ClassicRecommender(dex, summary.starters);
+  let rec: ClassicRecommender;
+  beforeAll(() => {
+    rec = new ClassicRecommender(dex, buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex).starters);
+  });
   const byName = (n: string) => rec.candidates.find((c) => c.form.name === n);
 
   it("방어가 높은 포켓몬은 물리막이, 특방이 높은 포켓몬은 특수막이", () => {
