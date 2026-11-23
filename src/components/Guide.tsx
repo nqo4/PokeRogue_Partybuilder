@@ -4,22 +4,40 @@ import { ROLE_NAMES } from "../lib/classic/candidate";
 
 const ROLES: { key: keyof typeof ROLE_NAMES; what: string; how: string; examples: string }[] = [
   {
-    key: "fast",
-    what: "상대보다 먼저 공격해서 맞기 전에 쓰러뜨리는 포켓몬. 피해를 덜 받으니 회복 아이템을 아낄 수 있습니다.",
-    how: `스피드 ${classic.fast.minSpeed} 이상이면서 공격이나 특공이 ${classic.fast.minOffense} 이상, 또는 자기 타입과 같은 선공기(위력 ${classic.fast.priorityMinPower} 이상)를 배우는 경우`,
-    examples: "팬텀, 후딘, 개굴닌자, 드래펄트",
+    key: "fastPhys",
+    what: "상대보다 먼저 물리 공격으로 쓰러뜨리는 포켓몬. 피해를 덜 받으니 회복 아이템을 아낄 수 있습니다.",
+    how: `스피드 ${classic.fast.minSpeed} 이상이면서 공격 ${classic.fast.minOffense} 이상, 또는 자기 타입과 같은 물리 선공기(위력 ${classic.fast.priorityMinPower} 이상)를 배우는 경우`,
+    examples: "개굴닌자(물리), 핫삼(불릿펀치), 드래펄트",
   },
   {
-    key: "sweeper",
-    what: "혼자서 여러 웨이브를 정리하는 에이스. 능력치를 올린 뒤 계속 쓰러뜨립니다.",
-    how: `종족값 ${classic.sweeper.legendBst} 이상의 고화력·고스피드 포켓몬, 칼춤·용의춤·나비춤·껍질깨기 같은 랭크업 기술, 또는 특성·패시브 시너지(모래날림+모래헤치기, 돌머리+이판사판 등)`,
+    key: "fastSpec",
+    what: "상대보다 먼저 특수 공격으로 쓰러뜨리는 포켓몬.",
+    how: `스피드 ${classic.fast.minSpeed} 이상이면서 특공 ${classic.fast.minOffense} 이상, 또는 자기 타입과 같은 특수 선공기를 배우는 경우`,
+    examples: "팬텀, 후딘, 개굴닌자(특수)",
+  },
+  {
+    key: "sweeperPhys",
+    what: "공격을 올린 뒤 혼자서 여러 웨이브를 정리하는 물리 에이스.",
+    how: `종족값 ${classic.sweeper.legendBst} 이상의 고공격·고스피드 포켓몬, 칼춤·용의춤·껍질깨기 같은 공격 랭크업 기술, 또는 특성·패시브 시너지(모래날림+모래헤치기, 돌머리+이판사판 등)`,
     examples: "용의춤 한카리아스, 껍질깨기 파르셀, 모래헤치기 마기라스",
   },
   {
-    key: "multi",
-    what: "보스의 실드를 여러 번 깎거나, 더블배틀에서 상대 둘을 한 번에 공격하는 포켓몬.",
-    how: `위력 ${classic.multi.spreadMinPower} 이상의 광역기(파도타기, 지진 등), 또는 자기 타입 연속기·스킬링크·테크니션 연속기`,
-    examples: "분화 그란돈, 스킬링크 연속기 포켓몬",
+    key: "sweeperSpec",
+    what: "특공을 올린 뒤 혼자서 여러 웨이브를 정리하는 특수 에이스.",
+    how: `종족값 ${classic.sweeper.legendBst} 이상의 고특공·고스피드 포켓몬, 나쁜음모·나비춤·명상·껍질깨기 같은 특공 랭크업 기술, 또는 특성·패시브 시너지`,
+    examples: "나비춤 불카모스, 나쁜음모 루카리오, 껍질깨기 거북왕",
+  },
+  {
+    key: "spread",
+    what: "더블배틀에서 상대 둘을 한 번에 공격하는 포켓몬.",
+    how: `위력 ${classic.multi.spreadMinPower} 이상의 광역기(파도타기, 지진, 분화 등). 자기 타입 광역기면 더 높게 봅니다`,
+    examples: "분화 그란돈, 파도타기 포켓몬",
+  },
+  {
+    key: "boss",
+    what: "보스의 실드를 한 턴에 여러 번 깎는 포켓몬.",
+    how: "자기 타입 연속기, 또는 스킬링크·테크니션 같은 특성과 함께 쓰는 연속기",
+    examples: "스킬링크 연속기 포켓몬, 비늘쏘기 한카리아스",
   },
   {
     key: "physTank",
@@ -64,7 +82,12 @@ export function Guide() {
     <section className="guide">
       <h2>파티 역할</h2>
       <p className="muted small">
-        추천 파티는 아래 역할 중 <b>선공형이나 스위퍼를 최소 1마리</b> 넣고, 나머지로 약점을 보완하도록 짭니다.
+        추천 파티는 아래 역할 중 <b>선공형이나 스위퍼(물리·특수)를 최소 1마리</b> 넣고, 나머지로 약점을 보완하도록 짭니다.
+      </p>
+      <p className="muted small">
+        공격 역할은 물리·특수로 나눕니다. 공격과 특공이 비슷하거나(망나뇽 등) 메가진화로 주 공격이 바뀌는 포켓몬(루카리오
+        메가·메가Z 등)은 둘 다 맡을 수 있고, 그 밖에는 능력치가 높은 쪽만 봅니다. 예를 들어 대짱이는 특공보다 공격이 높아
+        탁류 같은 특수기 대신 물리기로 평가합니다.
       </p>
       <div className="guide-roles">
         {ROLES.map((r) => (

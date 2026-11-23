@@ -7,16 +7,47 @@ import type { TypeMatrix } from "../typeChart";
 import { typeMultiplier } from "../typeChart";
 import type { ResolvedConfig } from "./config";
 
-export type Role = "fast" | "sweeper" | "multi" | "physTank" | "specTank" | "support";
-export const ROLES: Role[] = ["fast", "sweeper", "multi", "physTank", "specTank", "support"];
+export type Role =
+  | "fastPhys"
+  | "fastSpec"
+  | "sweeperPhys"
+  | "sweeperSpec"
+  | "spread"
+  | "boss"
+  | "physTank"
+  | "specTank"
+  | "support";
+export const ROLES: Role[] = [
+  "fastPhys",
+  "fastSpec",
+  "sweeperPhys",
+  "sweeperSpec",
+  "spread",
+  "boss",
+  "physTank",
+  "specTank",
+  "support",
+];
 export const ROLE_NAMES: Record<Role, string> = {
-  fast: "선공형",
-  sweeper: "스위퍼",
-  multi: "다대다·쉴드",
+  fastPhys: "물리 선공형",
+  fastSpec: "특수 선공형",
+  sweeperPhys: "물리 스위퍼",
+  sweeperSpec: "특수 스위퍼",
+  spread: "광역기",
+  boss: "보스 대응",
   physTank: "물리막이",
   specTank: "특수막이",
   support: "서포터",
 };
+/** 공격 역할 (파티에 최소 1마리 필요) */
+export const ATTACK_ROLES: Role[] = ["fastPhys", "fastSpec", "sweeperPhys", "sweeperSpec"];
+/** 역할이 쓰는 공격 능력치 (물리 atk, 특수 spa). 공격 분류와 상관없는 역할은 null */
+export const roleStat = (r: Role | null): "atk" | "spa" | null =>
+  r === "fastPhys" || r === "sweeperPhys" ? "atk" : r === "fastSpec" || r === "sweeperSpec" ? "spa" : null;
+const isFast = (r: Role | null) => r === "fastPhys" || r === "fastSpec";
+/** 공격 역할 점수 중 가장 높은 것 */
+export const attackScore = (c: { roles: Record<Role, RoleResult> }) =>
+  Math.max(...ATTACK_ROLES.map((r) => c.roles[r].score));
 
 export interface RoleResult {
   /** 0~1 */
@@ -60,6 +91,8 @@ export interface Candidate {
   types: number[];
   /** 메가진화·거다이맥스·폼 변화 형태 (평가 형태와 같은 종) */
   specialForms: DexSpecies[];
+  /** 물리·특수 겸용: 물리·특수 기술을 모두 역할·기술 평가에 넣는다 (아니면 주 공격 분류 기술만) */
+  hybrid: boolean;
   ability: AbilityPick;
   /** 특성을 고른 이유 */
   abilityWhy: string;
@@ -106,6 +139,13 @@ const RECOIL_TAGS = [10, 13] as const;
 const OHKO_TAG = 68;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/** 공격·특공이 비슷해 물리·특수 어느 쪽으로도 쓸 수 있는 능력치인가 (stats: [HP, 공격, 방어, 특공, 특방, 스피드]) */
+export function isHybridStats(stats: readonly number[]): boolean {
+  const lo = Math.min(stats[1], stats[3]);
+  const hi = Math.max(stats[1], stats[3]);
+  return lo >= hi * 0.85 || (lo >= 100 && lo >= hi * 0.7);
+}
 
 export class CandidateBuilder {
   constructor(
@@ -172,7 +212,6 @@ export class CandidateBuilder {
     const raw = cfg.raw;
     const [, atk, , spa, , spe] = form.stats;
     const offenseStat = atk >= spa ? "atk" : "spa";
-    const off = Math.max(atk, spa);
     const types = form.types;
 
     // ── 기술: 레벨업(진화 전 형태 포함)·진화·기억버섯 + 해금 알기술
@@ -190,6 +229,16 @@ export class CandidateBuilder {
     const moveList = [...moves]
       .map((fid) => [fid, dex.move(fid)] as const)
       .filter((x): x is readonly [number, MoveInfo] => !!x[1] && !x[1].tags.includes(TAG.NOT_IMPLEMENTED));
+
+    // ── 물리·특수: 공격·특공이 비슷하거나(낮은 쪽이 높은 쪽의 85% 이상, 또는 100 이상이면서 70% 이상 — 망나뇽 등)
+    // 메가진화·폼 변화로 주 공격이 바뀌면(루카리오 메가/메가Z 등) 겸용으로 보고 두 분류 기술을 다 센다.
+    // 그 밖에는 능력치가 높은 쪽 분류의 공격기만 센다 (대짱이는 특공보다 공격이 높아 탁류 대신 물리기를 쓴다)
+    const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4 && this.allow(f));
+    const hybrid = [form, ...specialForms].some((f) => isHybridStats(f.stats)) ||
+      new Set([form, ...specialForms].map((f) => (f.stats[1] >= f.stats[3] ? 0 : 1))).size > 1;
+    const mainCat = offenseStat === "atk" ? 0 : 1;
+    /** 역할·기술 평가에 쓰는 기술: 변화기 + 쓸 분류의 공격기 */
+    const usableList = moveList.filter(([, m]) => m.cat === 2 || hybrid || m.cat === mainCat);
 
     // ── 특성: 해금된 칸 중 가장 쓸모 있는 것 + 패시브
     const passiveFid = form.abilities.passive ?? owned.dex.abilities.passive;
@@ -216,73 +265,90 @@ export class CandidateBuilder {
     const roles = {} as Record<Role, RoleResult>;
     const healAbs = activeAbilities.filter((a) => cfg.healAbilities.has(a));
     // 역할 판정에서 찾은 기술 목록 (기술 추천에 다시 쓴다)
-    let prioMoves: MoveEntry[] = [];
-    let setupMoves: MoveEntry[] = [];
+    // 물리·특수 공격 역할별로 찾은 기술 (기술 추천에 다시 쓴다)
+    const prioMoves: Record<"atk" | "spa", MoveEntry[]> = { atk: [], spa: [] };
+    const setupMoves: Record<"atk" | "spa", MoveEntry[]> = { atk: [], spa: [] };
     let spreadMoves: MoveEntry[] = [];
+    let multiHitMoves: MoveEntry[] = [];
     const recMoves = moveList.filter(([f]) => cfg.recoveryMoves.has(f));
     const supMoves = moveList.filter(([f]) => cfg.supportMoves.has(f));
 
-    // 선공형: 자속 선공기, 또는 높은 스피드 + 높은 화력
-    {
-      const reasons: Reason[] = [];
-      let score = 0;
-      if (spe >= raw.fast.minSpeed && off >= raw.fast.minOffense) {
-        score = 0.6 + clamp01((spe - raw.fast.minSpeed) / 60) * 0.3;
-        reasons.push({ text: `스피드 ${spe} · ${offenseStat === "atk" ? "공격" : "특공"} ${off}` });
+    // 물리·특수 공격 역할: 겸용이면 둘 다, 아니면 능력치가 높은 쪽만 판정한다 (다른 쪽은 점수 0)
+    const cats: ("atk" | "spa")[] = hybrid ? ["atk", "spa"] : [offenseStat];
+    const syn = this.synergy(activeAbilities);
+    for (const k of ["atk", "spa"] as const) {
+      const fastRole: Role = k === "atk" ? "fastPhys" : "fastSpec";
+      const sweepRole: Role = k === "atk" ? "sweeperPhys" : "sweeperSpec";
+      if (!cats.includes(k)) {
+        roles[fastRole] = { score: 0, reasons: [] };
+        roles[sweepRole] = { score: 0, reasons: [] };
+        continue;
       }
-      const prio = moveList.filter(
-        ([fid, m]) =>
-          m.cat !== 2 && m.priority > 0 && m.power >= raw.fast.priorityMinPower &&
-          types.includes(m.type) && !cfg.excludePriority.has(fid),
-      );
-      prioMoves = prio;
-      if (prio.length) {
-        score = Math.max(score, 0.5) + 0.25;
-        reasons.push({ text: "자속 선공기", refs: prio.map(([f]) => f) });
+      const catNo = k === "atk" ? 0 : 1;
+      const offK = k === "atk" ? atk : spa;
+      const statName = k === "atk" ? "공격" : "특공";
+
+      // 선공형: 자속 선공기, 또는 높은 스피드 + 높은 화력
+      {
+        const reasons: Reason[] = [];
+        let score = 0;
+        if (spe >= raw.fast.minSpeed && offK >= raw.fast.minOffense) {
+          score = 0.6 + clamp01((spe - raw.fast.minSpeed) / 60) * 0.3;
+          reasons.push({ text: `스피드 ${spe} · ${statName} ${offK}` });
+        }
+        const prio = moveList.filter(
+          ([fid, m]) =>
+            m.cat === catNo && m.priority > 0 && m.power >= raw.fast.priorityMinPower &&
+            types.includes(m.type) && !cfg.excludePriority.has(fid),
+        );
+        prioMoves[k] = prio;
+        if (prio.length) {
+          score = Math.max(score, 0.5) + 0.25;
+          reasons.push({ text: "자속 선공기", refs: prio.map(([f]) => f) });
+        }
+        roles[fastRole] = { score: clamp01(score), reasons };
       }
-      roles.fast = { score: clamp01(score), reasons };
+
+      // 스위퍼: 고종족값, 랭크업 기술, 특성/패시브 시너지
+      {
+        const reasons: Reason[] = [];
+        let score = 0;
+        if (form.bst >= raw.sweeper.legendBst && offK >= raw.sweeper.legendMinOffense && spe >= raw.sweeper.legendMinSpeed) {
+          score = 0.7;
+          reasons.push({ text: `종족값 ${form.bst}` });
+        }
+        const offProc = k === "atk" ? SELF_ATK : SELF_SPA;
+        const setup = moveList.filter(([, m]) =>
+          m.procs.some(
+            ([chance, eff, stages]) =>
+              stages > 0 && (chance === -1 || chance >= 100) &&
+              (eff === offProc || eff === SELF_ALL || (eff === SELF_SPE && m.cat === 2)),
+          ) && (m.cat === 2 || (m.power > 0 && m.cat === catNo)),
+        );
+        const strongSetup = setup.filter(([, m]) =>
+          m.cat === 2 && m.procs.some(([, eff, st]) => (eff === offProc && st >= 2) || eff === SELF_ALL) ||
+          m.procs.filter(([, eff, st]) => st > 0 && (eff === offProc || eff === SELF_SPE)).length >= 2,
+        );
+        // 강한 랭크업기(칼춤·나쁜음모·껍질깨기 등)를 앞에 둔다
+        setupMoves[k] = [...strongSetup, ...setup.filter((x) => !strongSetup.includes(x))];
+        if (offK >= raw.sweeper.setupMinOffense && setup.length) {
+          score = Math.max(score, strongSetup.length ? 0.7 : 0.5);
+          const shown = (strongSetup.length ? strongSetup : setup).slice(0, 3);
+          reasons.push({ text: "랭크업", refs: shown.map(([f]) => f) });
+        }
+        if (syn.bonus > 0) {
+          score += Math.min(0.4, syn.bonus * 0.08);
+          reasons.push(...syn.labels);
+        }
+        roles[sweepRole] = { score: clamp01(score), reasons };
+      }
     }
 
-    // 스위퍼: 고종족값, 랭크업 기술, 특성/패시브 시너지
+    // 광역기: 상대 둘(더블배틀)을 한 번에 치는 기술
     {
       const reasons: Reason[] = [];
       let score = 0;
-      if (form.bst >= raw.sweeper.legendBst && off >= raw.sweeper.legendMinOffense && spe >= raw.sweeper.legendMinSpeed) {
-        score = 0.7;
-        reasons.push({ text: `종족값 ${form.bst}` });
-      }
-      const offProc = offenseStat === "atk" ? SELF_ATK : SELF_SPA;
-      const setup = moveList.filter(([, m]) =>
-        m.procs.some(
-          ([chance, eff, stages]) =>
-            stages > 0 && (chance === -1 || chance >= 100) &&
-            (eff === offProc || eff === SELF_ALL || (eff === SELF_SPE && m.cat === 2)),
-        ) && (m.cat === 2 || m.power > 0),
-      );
-      const strongSetup = setup.filter(([, m]) =>
-        m.cat === 2 && m.procs.some(([, eff, st]) => (eff === offProc && st >= 2) || eff === SELF_ALL) ||
-        m.procs.filter(([, eff, st]) => st > 0 && (eff === offProc || eff === SELF_SPE)).length >= 2,
-      );
-      // 강한 랭크업기(칼춤·용의춤 등)를 앞에 둔다
-      setupMoves = [...strongSetup, ...setup.filter((x) => !strongSetup.includes(x))];
-      if (off >= raw.sweeper.setupMinOffense && setup.length) {
-        score = Math.max(score, strongSetup.length ? 0.7 : 0.5);
-        const shown = (strongSetup.length ? strongSetup : setup).slice(0, 3);
-        reasons.push({ text: "랭크업", refs: shown.map(([f]) => f) });
-      }
-      const syn = this.synergy(activeAbilities);
-      if (syn.bonus > 0) {
-        score += Math.min(0.4, syn.bonus * 0.08);
-        reasons.push(...syn.labels);
-      }
-      roles.sweeper = { score: clamp01(score), reasons };
-    }
-
-    // 다대다·보스 쉴드: 광역기, 연속기
-    {
-      const reasons: Reason[] = [];
-      let score = 0;
-      const spread = moveList.filter(
+      const spread = usableList.filter(
         ([fid, m]) =>
           m.cat !== 2 && m.power >= raw.multi.spreadMinPower && !cfg.excludeMultiMoves.has(fid) &&
           (m.tags.includes(TAG.TARGET_ALL_ENEMIES) || m.tags.includes(TAG.TARGET_ALL_FIELD)),
@@ -296,8 +362,16 @@ export class CandidateBuilder {
         score = 0.4;
         reasons.push({ text: "광역기", refs: spread.slice(0, 2).map(([f]) => f) });
       }
-      const boosted = activeAbilities.some((a) => cfg.multiHitAbilities.has(a));
-      const multiHit = moveList.filter(([, m]) => {
+      roles.spread = { score: clamp01(score), reasons };
+    }
+
+    // 보스 대응: 보스 실드를 여러 번 깎는 연속기 (자속, 또는 스킬링크·테크니션 같은 특성)
+    {
+      const reasons: Reason[] = [];
+      let score = 0;
+      const boostAbs = activeAbilities.filter((a) => cfg.multiHitAbilities.has(a));
+      const boosted = boostAbs.length > 0;
+      multiHitMoves = usableList.filter(([, m]) => {
         if (m.cat === 2 || m.power <= 0) return false;
         const hits = m.tags.includes(TAG.HIT_10) ? 10 : m.tags.includes(TAG.HIT_3) ? 3
           : m.tags.includes(TAG.HIT_2) ? 2 : m.tags.includes(TAG.HIT_2_5) ? (boosted ? 5 : 2) : 0;
@@ -305,11 +379,12 @@ export class CandidateBuilder {
         const stab = types.includes(m.type);
         return (stab || boosted) && m.power * hits * (stab ? 1.5 : 1) >= raw.multi.multiHitMinTotalPower;
       });
-      if (multiHit.length) {
-        score = Math.max(score, 0.4) + (boosted ? 0.3 : 0.1);
-        reasons.push({ text: boosted ? "연속기(+특성)" : "연속기", refs: multiHit.slice(0, 2).map(([f]) => f) });
+      if (multiHitMoves.length) {
+        score = boosted ? 0.7 : 0.5;
+        reasons.push({ text: boosted ? "연속기(+특성)" : "연속기", refs: multiHitMoves.slice(0, 2).map(([f]) => f) });
+        if (boosted) reasons.push({ text: "", refs: boostAbs });
       }
-      roles.multi = { score: clamp01(score), reasons };
+      roles.boss = { score: clamp01(score), reasons };
     }
 
     // 물리막이·특수막이: 내구(HP×방어 / HP×특방), 받는 피해를 줄이는 특성, 방어 랭크업기, 회복기
@@ -393,28 +468,33 @@ export class CandidateBuilder {
     const startSet = new Set(owned.eggMoves.filter((m) => m.unlocked).map((m) => m.fid));
     for (const [k, code] of Object.entries(owned.dex.moves)) if (code >= 1 && code <= 5) startSet.add(Number(k));
     const onlyStart = (l: MoveEntry[]) => l.filter(([f]) => startSet.has(f));
-    const startList = onlyStart(moveList);
-    const lists = {
-      prio: onlyStart(prioMoves),
-      setup: onlyStart(setupMoves),
+    const startList = onlyStart(usableList);
+    const listsFor = (k: "atk" | "spa") => ({
+      prio: onlyStart(prioMoves[k]),
+      setup: onlyStart(setupMoves[k]),
       defSetup: onlyStart(defSetup),
       spdSetup: onlyStart(spdSetup),
       spread: onlyStart(spreadMoves),
+      multiHit: onlyStart(multiHitMoves),
       rec: onlyStart(recMoves),
       sup: onlyStart(supMoves),
-    };
+    });
+    // 물리·특수 공격 역할은 그 분류의 공격 능력치 기준으로 기술·성격을 고른다
     const builds = Object.fromEntries(
-      ROLES.map((r) => [
-        r,
-        {
-          moveset: this.pickMoveset(r, types, offenseStat, activeAbilities, startList, lists),
-          nature: this.pickNature(owned.natures, offenseStat, r),
-        },
-      ]),
+      ROLES.map((r) => {
+        const st = roleStat(r) ?? offenseStat;
+        return [
+          r,
+          {
+            moveset: this.pickMoveset(r, types, st, activeAbilities, startList, listsFor(st), hybrid),
+            nature: this.pickNature(owned.natures, st, r),
+          },
+        ];
+      }),
     ) as Candidate["builds"];
     const moveset = primaryRole
       ? builds[primaryRole].moveset
-      : this.pickMoveset(null, types, offenseStat, activeAbilities, startList, lists);
+      : this.pickMoveset(null, types, offenseStat, activeAbilities, startList, listsFor(offenseStat), hybrid);
     const abilityWhy =
       isTank(focus)
         ? `${ROLE_NAMES[focus]} 역할: 받는 피해를 줄이는 특성`
@@ -442,7 +522,7 @@ export class CandidateBuilder {
     if (nature) quality += w.goodNature;
     else notes.push(`추천 성격(${offenseStat === "atk" ? "고집·명랑" : "조심·겁쟁이"}) 미해금`);
 
-    const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4 && this.allow(f));
+    if (hybrid) notes.push("물리·특수 겸용 (두 분류 기술 모두 평가)");
     if (specialForms.length) {
       quality += 1;
       notes.push(`${specialForms.map((f) => f.name).join("·")} 가능`);
@@ -464,6 +544,7 @@ export class CandidateBuilder {
       form,
       types,
       specialForms,
+      hybrid,
       ability,
       abilityWhy,
       passive: { fid: passiveFid, name: dex.name(passiveFid), active: passiveActive },
@@ -603,7 +684,7 @@ export class CandidateBuilder {
     const dump = offenseStat === "atk" ? STAT_INDEX.spa : STAT_INDEX.atk;
     const bulk = STAT_INDEX[bulkSide];
     const order =
-      role === "fast" || role === "support"
+      isFast(role) || role === "support"
         ? [STAT_INDEX.spe, main]
         : isTank(role)
           ? [bulk, main, STAT_INDEX.spe]
@@ -643,9 +724,12 @@ export class CandidateBuilder {
       defSetup: MoveEntry[];
       spdSetup: MoveEntry[];
       spread: MoveEntry[];
+      multiHit: MoveEntry[];
       rec: MoveEntry[];
       sup: MoveEntry[];
     },
+    /** 물리·특수 겸용이면 다른 분류 공격기도 거의 같게 친다 (아니면 moveList 에 주 분류 공격기만 들어온다) */
+    hybrid = false,
   ): MovePick[] {
     const { cfg, dex } = this;
     const mainCat = offenseStat === "atk" ? 0 : 1;
@@ -653,7 +737,7 @@ export class CandidateBuilder {
     const ok = (fid: number) => !cfg.movesetExclude.has(fid);
     const value = (m: MoveInfo) => {
       if (m.cat === 2 || m.power <= 0 || m.tags.includes(OHKO_TAG)) return 0;
-      let v = m.power * (m.acc > 0 ? m.acc / 100 : 1) * (types.includes(m.type) ? 1.5 : 1) * (m.cat === mainCat ? 1 : 0.6);
+      let v = m.power * (m.acc > 0 ? m.acc / 100 : 1) * (types.includes(m.type) ? 1.5 : 1) * (m.cat === mainCat ? 1 : hybrid ? 0.9 : 0.6);
       if (!noRecoil && m.tags.some((t) => t >= RECOIL_TAGS[0] && t <= RECOIL_TAGS[1])) v *= 0.85;
       if (m.procs.some(([c, e, st]) => st < 0 && e <= SELF_STAT_MAX && (c === -1 || c >= 100))) v *= 0.85;
       return v;
@@ -687,19 +771,26 @@ export class CandidateBuilder {
     };
 
     switch (role) {
-      case "fast":
+      case "fastPhys":
+      case "fastSpec":
         add(first(byValue(lists.prio)), "자속 선공기", false);
         stab();
         coverage();
         break;
-      case "sweeper":
+      case "sweeperPhys":
+      case "sweeperSpec":
         add(first(lists.setup), "랭크업");
         stab();
         coverage();
         add(first(byValue(lists.prio)), "선공기", false);
         break;
-      case "multi":
-        add(first(byValue(lists.spread)), "광역기 (다대다·쉴드)");
+      case "spread":
+        add(first(byValue(lists.spread)), "광역기 (더블배틀)");
+        stab();
+        coverage();
+        break;
+      case "boss":
+        add(first(byValue(lists.multiHit)), "연속기 (보스 실드)");
         stab();
         coverage();
         break;

@@ -1,6 +1,6 @@
 // 내 파티 점검: 파티 분석 결과에서 "부족한 점·보완할 점"을 사람이 읽는 문장으로 만든다
 import type { Dex } from "../dex";
-import { ROLES, ROLE_NAMES, type Candidate } from "./candidate";
+import { ROLES, ROLE_NAMES, type Candidate, type Role } from "./candidate";
 import type { PartyAnalysis } from "./party";
 
 const PARTY_MAX = 6;
@@ -23,7 +23,13 @@ export function findings(a: PartyAnalysis, costLimit: number, dex: Dex): Finding
     });
   }
 
-  const missing = ROLES.filter((r) => !a.roleCoverage[r]).map((r) => ROLE_NAMES[r]);
+  // 물리·특수로 나뉜 공격 역할은 한 묶음으로 본다 (물리 선공형이 있으면 선공형은 있는 것으로)
+  const groups: [string, Role[]][] = [
+    ["선공형", ["fastPhys", "fastSpec"]],
+    ["스위퍼", ["sweeperPhys", "sweeperSpec"]],
+    ...ROLES.filter((r) => !r.startsWith("fast") && !r.startsWith("sweeper")).map((r): [string, Role[]] => [ROLE_NAMES[r], [r]]),
+  ];
+  const missing = groups.filter(([, rs]) => rs.every((r) => !a.roleCoverage[r])).map(([name]) => name);
   if (missing.length && a.members.length >= 4) out.push({ level: "info", text: `파티에 없는 포지션: ${missing.join(", ")}` });
 
   for (const x of a.issues) out.push({ level: x.severity === "high" ? "warn" : "info", text: x.text });

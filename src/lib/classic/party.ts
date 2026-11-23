@@ -2,7 +2,7 @@
 import type { Dex } from "../dex";
 import type { TypeMatrix } from "../typeChart";
 import { typeMultiplier } from "../typeChart";
-import { ROLES, type Candidate, type Role } from "./candidate";
+import { ATTACK_ROLES, ROLES, type Candidate, type Role } from "./candidate";
 import type { ResolvedConfig } from "./config";
 
 /** 사용자가 고정 포켓몬에 정한 포지션. "free"는 역할 없이 데려가는 포켓몬 (클리어·럭 채우기용) */
@@ -101,7 +101,7 @@ export function analyzeParty(
   const roleCoverage = Object.fromEntries(
     ROLES.map((r) => [r, positions.filter((p) => p === r).length]),
   ) as Record<Role, number>;
-  const hasAttacker = roleCoverage.fast + roleCoverage.sweeper > 0;
+  const hasAttacker = ATTACK_ROLES.some((r) => roleCoverage[r] > 0);
 
   let score = 0;
   for (const m of members) score += m.value + w.member;
@@ -111,7 +111,7 @@ export function analyzeParty(
   score -= positions.filter((p, i) => p == null && !free[i]).length * pw.unfitPenalty;
   if (roleCoverage.physTank || roleCoverage.specTank) score += w.tankInParty;
   if (roleCoverage.support) score += w.supportInParty;
-  if (roleCoverage.multi) score += w.multiInParty;
+  if (roleCoverage.spread || roleCoverage.boss) score += w.multiInParty;
 
   // ── 방어 상성
   const issues: PartyIssue[] = [];

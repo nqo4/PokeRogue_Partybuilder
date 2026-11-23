@@ -3,7 +3,7 @@ import type { Dex, DexSpecies } from "../dex";
 import type { Official } from "../official";
 import type { OwnedStarter } from "../starters";
 import { buildTypeMatrix, type TypeMatrix } from "../typeChart";
-import { CandidateBuilder, type Candidate } from "./candidate";
+import { CandidateBuilder, attackScore, type Candidate } from "./candidate";
 import { resolveConfig, type ClassicConfig, type ResolvedConfig } from "./config";
 import { CLASSIC, cleared, eligible, formAllowed, type ClearCriterion } from "../ribbons";
 import { ROLE_THRESHOLD, analyzeParty, type FixedPosition, type PartyAnalysis } from "./party";
@@ -157,7 +157,7 @@ export class ClassicRecommender {
     } else {
       // 첫 자리는 공격 역할(선공형·스위퍼)을 맡을 수 있는 포켓몬으로 시작한다
       beam = pool
-        .filter((c) => Math.max(c.roles.fast.score, c.roles.sweeper.score) >= ROLE_THRESHOLD)
+        .filter((c) => attackScore(c) >= ROLE_THRESHOLD)
         .sort((a, b) => b.value - a.value)
         .slice(0, beamWidth * 2)
         .map((c) => make([c]));
@@ -262,6 +262,6 @@ export class ClassicRecommender {
 
 /** 공격 역할 → 나머지 순, 같은 그룹 안에서는 점수 순 */
 function sortMembers(ms: Candidate[]): Candidate[] {
-  const atk = (c: Candidate) => Math.max(c.roles.fast.score, c.roles.sweeper.score) >= ROLE_THRESHOLD;
+  const atk = (c: Candidate) => attackScore(c) >= ROLE_THRESHOLD;
   return [...ms].sort((a, b) => Number(atk(b)) - Number(atk(a)) || b.value - a.value);
 }

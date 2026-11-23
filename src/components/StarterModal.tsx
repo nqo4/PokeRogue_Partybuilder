@@ -86,7 +86,8 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-label={`${species.name} 상세`}>
         <header className="modal-head">
-          <span className={myStatus && myStatus !== "caught" ? `dim-${myStatus}` : ""}>
+          {/* 상세 창에서는 못 잡은 형태도 흐리게 하지 않고 그대로 보여 준다 (전체 도감 칸만 흐리게) */}
+          <span>
             {/* 지금 보고 있는 포켓몬이라 눌러도 같은 창이므로 누를 수 없게 한다 */}
             <SpriteSelectContext.Provider value={null}>
               <Sprite species={species} size={108} shiny={shinyTier != null ? shinyTier + 1 : null} />
@@ -106,17 +107,16 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
             <div>
               {species.types.map(typeBadge)}
               <span className={`atk-kind ${atk >= spa ? "phys" : "spec"}`}>{atk >= spa ? "물리형" : "특수형"}</span>
-              {shiny && myStatus === "caught" && (
-                <span className="modal-shiny">
-                  <ShinyTiers
-                    mask={shiny[species.id] ?? 0}
-                    variants={species.variants}
-                    size={16}
-                    selected={shinyTier}
-                    onSelect={setShinyTier}
-                  />
-                </span>
-              )}
+              {/* 잡지 못한 형태도 이로치 색을 볼 수 있다 (보유 표시는 세이브 기준) */}
+              <span className="modal-shiny">
+                <ShinyTiers
+                  mask={shiny?.[species.id] ?? 0}
+                  variants={species.variants}
+                  size={16}
+                  selected={shinyTier}
+                  onSelect={setShinyTier}
+                />
+              </span>
             </div>
             {owned ? (
               <div className="small muted">
@@ -245,7 +245,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
           <div className="wide">
             <h3>
               진화 계열 ({dex.familyName(species.family)}){" "}
-              <span className="muted small">— 사진을 누르면 그 포켓몬을 봅니다{status && " · 어두운 형태는 아직 잡지 못한 형태"}</span>
+              <span className="muted small">— 사진을 누르면 그 포켓몬을 봅니다{status && " · 못 잡은 형태는 이름 옆에 발견만·미발견 표시"}</span>
             </h3>
             <div className="table-wrap">
               <table className="family">
@@ -281,7 +281,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
                             </span>
                             <span className="dim-target">{f.name}</span>
                             {st && st !== "caught" && <span className="status-tag">{STATUS_LABEL[st]}</span>}
-                            {st === "caught" && shiny && <ShinyTiers mask={shiny[f.id] ?? 0} variants={f.variants} />}
+                            {shiny && <ShinyTiers mask={shiny[f.id] ?? 0} variants={f.variants} />}
                           </span>
                         </td>
                         <td className="dim-target">

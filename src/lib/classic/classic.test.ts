@@ -5,7 +5,7 @@ import { Dex, type DexData } from "../dex";
 import { decryptSave } from "../save";
 import { buildSummary, type SaveSummary } from "../starters";
 import { buildTypeMatrix, typeMultiplier } from "../typeChart";
-import { CandidateBuilder } from "./candidate";
+import { CandidateBuilder, attackScore } from "./candidate";
 import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
 import { findings } from "./check";
@@ -127,7 +127,7 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   it("단점 특성(게을킹 게으름)은 공격 역할로 보지 않는다", () => {
     const slaking = rec.candidate(287);
     expect(slaking?.ability.name).toBe("게으름");
-    expect(slaking!.roles.sweeper.score).toBeLessThan(0.5);
+    expect(slaking!.roles.sweeperPhys.score).toBeLessThan(0.5);
   });
 
   it("파티 수를 정확히 맞춘다 (3마리)", () => {
@@ -166,7 +166,7 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
       }
     }
     // 시작 기술에 랭크업기가 있는 스위퍼는 첫 칸이 랭크업기
-    const sweeper = all.find((c) => c.primaryRole === "sweeper" && c.moveset.some((m) => m.why === "랭크업"));
+    const sweeper = all.find((c) => c.primaryRole?.startsWith("sweeper") && c.moveset.some((m) => m.why === "랭크업"));
     expect(sweeper?.moveset[0].why).toBe("랭크업");
     // 회복기가 있는 막이는 첫 칸이 회복기
     const tank = all.find((c) => (c.primaryRole === "physTank" || c.primaryRole === "specTank") && cfg.recoveryMoves.has(c.moveset[0]?.fid));
@@ -188,7 +188,7 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   it("내 파티 점검: 공격 역할이 없으면 보완 필요, 빈 자리와 남은 코스트를 알려 준다", () => {
     // 막이·서포터만 맡을 수 있는 포켓몬 2마리 (공격 역할 점수가 낮은 것)
     const nonAttackers = rec.candidates
-      .filter((c) => Math.max(c.roles.fast.score, c.roles.sweeper.score) < 0.5 && c.owned.cost <= 3)
+      .filter((c) => attackScore(c) < 0.5 && c.owned.cost <= 3)
       .slice(0, 2);
     const a = rec.analyze(nonAttackers);
     const f = findings(a, 10, dex);
@@ -201,6 +201,38 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   it("지정한 포켓몬을 반드시 포함한다", () => {
     const [r] = rec.recommend({ onlyUncleared: true, required: [287], count: 1 });
     expect(r.analysis.members.some((m) => m.owned.speciesId === 287)).toBe(true);
+  });
+});
+
+describe.skipIf(!savePath)("물리·특수 역할", () => {
+  let rec: ClassicRecommender;
+  beforeAll(() => {
+    rec = new ClassicRecommender(dex, buildSummary(decryptSave(fs.readFileSync(savePath!, "utf8")), dex).starters);
+  });
+
+  it("겸용 판정: 공격·특공이 비슷하거나(망나뇽) 메가로 주 공격이 바뀌면(루카리오) 겸용, 대짱이는 물리만", () => {
+    const dragonite = rec.candidates.find((c) => c.form.name === "망나뇽");
+    if (dragonite) expect(dragonite.hybrid).toBe(true);
+    const lucario = rec.candidates.find((c) => c.form.name === "루카리오");
+    if (lucario) expect(lucario.hybrid).toBe(true);
+    const swampert = rec.candidates.find((c) => c.form.name === "대짱이");
+    if (swampert) {
+      expect(swampert.hybrid).toBe(false);
+      // 특수 역할은 판정하지 않는다
+      expect(swampert.roles.fastSpec.score).toBe(0);
+      expect(swampert.roles.sweeperSpec.score).toBe(0);
+      // 추천 기술에 특수기(탁류 등)가 없다
+      for (const b of [swampert.moveset, ...Object.values(swampert.builds).map((x) => x.moveset)])
+        for (const m of b) expect(dex.move(m.fid)?.cat, dex.name(m.fid)).not.toBe(1);
+    }
+  });
+
+  it("겸용이 아니면 주 공격 분류의 공격 역할만 점수가 있다", () => {
+    for (const c of rec.candidates) {
+      if (c.hybrid) continue;
+      const other = c.form.stats[1] >= c.form.stats[3] ? ["fastSpec", "sweeperSpec"] : ["fastPhys", "sweeperPhys"];
+      for (const r of other) expect(c.roles[r as keyof typeof c.roles].score, `${c.form.name} ${r}`).toBe(0);
+    }
   });
 });
 

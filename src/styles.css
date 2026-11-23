@@ -172,9 +172,9 @@ button.primary:disabled { opacity: 0.6; cursor: wait; }
 .luck { margin-left: 4px; font-size: 0.75rem; color: var(--c-gold); font-weight: 600; }
 .roles { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 4px; }
 .role { padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; background: var(--hover); }
-.role-fast { color: var(--c-red); }
-.role-sweeper { color: var(--c-orange); }
-.role-multi { color: var(--c-teal); }
+.role-fastPhys, .role-fastSpec { color: var(--c-red); }
+.role-sweeperPhys, .role-sweeperSpec { color: var(--c-orange); }
+.role-spread, .role-boss { color: var(--c-teal); }
 .role-physTank { color: var(--c-blue); }
 .role-specTank { color: var(--c-gold); }
 .role-support { color: var(--c-purple); }
@@ -300,6 +300,9 @@ tr.form-seen .dim-target, .dim-seen { opacity: 0.55; }
 tr.form-unseen .dim-target, .dim-unseen { opacity: 0.35; }
 tr.form-seen img, .dim-seen img { filter: grayscale(0.7) brightness(0.6); }
 tr.form-unseen img, .dim-unseen img { filter: grayscale(1) brightness(0.35) blur(1.5px); }
+/* 상세 창의 진화 계열 표는 못 잡은 형태도 그대로 보여 준다 (상태는 이름 옆 표시로) */
+.modal tr.form-seen .dim-target, .modal tr.form-unseen .dim-target { opacity: 1; }
+.modal tr.form-seen img, .modal tr.form-unseen img { filter: none; }
 tr.current > td { background: var(--hover); }
 .status-caught { color: var(--c-teal); }
 .inline-sprite { display: inline-flex; vertical-align: middle; }

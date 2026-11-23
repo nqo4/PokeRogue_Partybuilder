@@ -80,7 +80,10 @@
 
   "positions": {
     "_설명": "파티 안에서 포켓몬마다 포지션 하나를 맡긴다. max: 포지션별 최대 인원, distinctBonus: 서로 다른 포지션 1개당 가산점, unfitPenalty: 맞는 포지션이 정원에 막혀(또는 맞는 역할이 없어) 못 받은 포켓몬 1마리당 감점",
-    "max": { "fast": 2, "sweeper": 2, "multi": 1, "physTank": 1, "specTank": 1, "support": 1 },
+    "max": {
+      "fastPhys": 2, "fastSpec": 2, "sweeperPhys": 2, "sweeperSpec": 2,
+      "spread": 1, "boss": 1, "physTank": 1, "specTank": 1, "support": 1
+    },
     "distinctBonus": 3,
     "unfitPenalty": 6
   },
@@ -88,7 +91,10 @@
   "weights": {
     "_설명": "점수 가중치",
     "bst": 0.06,
-    "role": { "fast": 10, "sweeper": 12, "multi": 5, "physTank": 6, "specTank": 6, "support": 5 },
+    "role": {
+      "fastPhys": 10, "fastSpec": 10, "sweeperPhys": 12, "sweeperSpec": 12,
+      "spread": 5, "boss": 5, "physTank": 6, "specTank": 6, "support": 5
+    },
     "passiveUnlocked": 3,
     "eggMoveUnlocked": 0.5,
     "ivPerPoint": 0.03,
