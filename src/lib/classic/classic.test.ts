@@ -5,7 +5,8 @@ import { Dex, type DexData } from "../dex";
 import { decryptSave } from "../save";
 import { buildSummary, type SaveSummary } from "../starters";
 import { buildTypeMatrix, typeMultiplier } from "../typeChart";
-import { CandidateBuilder, attackScore } from "./candidate";
+import { CandidateBuilder, attackScore, isHybridStats } from "./candidate";
+import classicJson from "../../config/classic.json";
 import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
 import { findings } from "./check";
@@ -204,6 +205,21 @@ describe.skipIf(!savePath)("실제 세이브로 클래식 추천", () => {
   });
 });
 
+describe("겸용 능력치 기준", () => {
+  const rule = classicJson.hybrid;
+  const s = (atk: number, spa: number) => [80, atk, 80, spa, 80, 80];
+  it("화력이 낮으면 비슷해도 겸용이 아니다", () => {
+    expect(isHybridStats(s(10, 10), rule)).toBe(false); // Shuckle
+    expect(isHybridStats(s(75, 75), rule)).toBe(false);
+    expect(isHybridStats(s(83, 85), rule)).toBe(true); // Blastoise
+  });
+  it("둘 다 높아도 75% 미만이면 겸용이 아니다", () => {
+    expect(isHybridStats(s(145, 105), rule)).toBe(false); // Mega Metagross 72%
+    expect(isHybridStats(s(134, 100), rule)).toBe(false); // Dragonite 74.6% (hybrid via the exception list)
+    expect(isHybridStats(s(135, 110), rule)).toBe(true); // Salamence 81%
+  });
+});
+
 describe.skipIf(!savePath)("물리·특수 역할", () => {
   let rec: ClassicRecommender;
   beforeAll(() => {
@@ -213,6 +229,9 @@ describe.skipIf(!savePath)("물리·특수 역할", () => {
   it("겸용 판정: 공격·특공이 비슷하거나(망나뇽) 메가로 주 공격이 바뀌면(루카리오) 겸용, 대짱이는 물리만", () => {
     const dragonite = rec.candidates.find((c) => c.form.name === "망나뇽");
     if (dragonite) expect(dragonite.hybrid).toBe(true);
+    // Nidoking is below the 85% ratio but hybrid through the config exception list
+    const nidoking = rec.candidates.find((c) => c.form.name === "니드킹");
+    if (nidoking) expect(nidoking.hybrid).toBe(true);
     const lucario = rec.candidates.find((c) => c.form.name === "루카리오");
     if (lucario) expect(lucario.hybrid).toBe(true);
     const swampert = rec.candidates.find((c) => c.form.name === "대짱이");
@@ -227,10 +246,27 @@ describe.skipIf(!savePath)("물리·특수 역할", () => {
     }
   });
 
+  it("능력치가 비슷해도 센 자속기가 한쪽에만 있으면 그쪽만 (뮤는 특수, 덩쿠림보는 물리)", () => {
+    const mew = rec.candidates.find((c) => c.form.name === "뮤");
+    if (mew) {
+      expect(mew.hybrid).toBe(false);
+      expect(mew.offenseStat).toBe("spa");
+    }
+    // Tangrowth 100/110 leans special on stats, but only has strong physical STAB (Power Whip)
+    const tangrowth = rec.candidates.find((c) => c.form.name === "덩쿠림보");
+    if (tangrowth) {
+      expect(tangrowth.hybrid).toBe(false);
+      expect(tangrowth.offenseStat).toBe("atk");
+    }
+    // Strong STAB on both sides keeps the stat-based hybrid (Blastoise: Wave Crash / Hydro Pump)
+    const blastoise = rec.candidates.find((c) => c.form.name === "거북왕");
+    if (blastoise) expect(blastoise.hybrid).toBe(true);
+  });
+
   it("겸용이 아니면 주 공격 분류의 공격 역할만 점수가 있다", () => {
     for (const c of rec.candidates) {
       if (c.hybrid) continue;
-      const other = c.form.stats[1] >= c.form.stats[3] ? ["fastSpec", "sweeperSpec"] : ["fastPhys", "sweeperPhys"];
+      const other = c.offenseStat === "atk" ? ["fastSpec", "sweeperSpec"] : ["fastPhys", "sweeperPhys"];
       for (const r of other) expect(c.roles[r as keyof typeof c.roles].score, `${c.form.name} ${r}`).toBe(0);
     }
   });

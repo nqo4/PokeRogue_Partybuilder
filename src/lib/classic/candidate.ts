@@ -140,11 +140,22 @@ const OHKO_TAG = 68;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-/** 공격·특공이 비슷해 물리·특수 어느 쪽으로도 쓸 수 있는 능력치인가 (stats: [HP, 공격, 방어, 특공, 특방, 스피드]) */
-export function isHybridStats(stats: readonly number[]): boolean {
+export interface HybridRule {
+  minOffense: number;
+  closeRatio: number;
+  highMin: number;
+  highRatio: number;
+}
+
+/**
+ * Whether attack and sp. attack are close enough to use either category (stats: [HP, Atk, Def, SpA, SpD, Spe]).
+ * Low-offense Pokemon (higher stat below minOffense) are never hybrid.
+ */
+export function isHybridStats(stats: readonly number[], rule: HybridRule): boolean {
   const lo = Math.min(stats[1], stats[3]);
   const hi = Math.max(stats[1], stats[3]);
-  return lo >= hi * 0.85 || (lo >= 100 && lo >= hi * 0.7);
+  if (hi < rule.minOffense) return false;
+  return lo >= hi * rule.closeRatio || (lo >= rule.highMin && lo >= hi * rule.highRatio);
 }
 
 export class CandidateBuilder {
@@ -211,7 +222,7 @@ export class CandidateBuilder {
     const { dex, cfg } = this;
     const raw = cfg.raw;
     const [, atk, , spa, , spe] = form.stats;
-    const offenseStat = atk >= spa ? "atk" : "spa";
+    let offenseStat: "atk" | "spa" = atk >= spa ? "atk" : "spa";
     const types = form.types;
 
     // ── 기술: 레벨업(진화 전 형태 포함)·진화·기억버섯 + 해금 알기술
@@ -230,12 +241,38 @@ export class CandidateBuilder {
       .map((fid) => [fid, dex.move(fid)] as const)
       .filter((x): x is readonly [number, MoveInfo] => !!x[1] && !x[1].tags.includes(TAG.NOT_IMPLEMENTED));
 
-    // ── 물리·특수: 공격·특공이 비슷하거나(낮은 쪽이 높은 쪽의 85% 이상, 또는 100 이상이면서 70% 이상 — 망나뇽 등)
-    // 메가진화·폼 변화로 주 공격이 바뀌면(루카리오 메가/메가Z 등) 겸용으로 보고 두 분류 기술을 다 센다.
-    // 그 밖에는 능력치가 높은 쪽 분류의 공격기만 센다 (대짱이는 특공보다 공격이 높아 탁류 대신 물리기를 쓴다)
+    // ── Physical / special split. Hybrid (count moves of both categories) when:
+    //   - the form is on the config exception list (hybrid.species, e.g. Dragonite, Nidoking), or
+    //   - a mega / form change has hybrid stats or flips the main category (e.g. Garchomp -> Mega Z), or
+    //   - the form's own attack and sp. attack are close (config hybrid), unless only one category has a
+    //     strong STAB move: then only that category counts and it becomes the main one.
+    // Otherwise only the higher stat's category counts (Swampert: physical moves instead of Muddy Water).
     const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4 && this.allow(f));
-    const hybrid = [form, ...specialForms].some((f) => isHybridStats(f.stats)) ||
-      new Set([form, ...specialForms].map((f) => (f.stats[1] >= f.stats[3] ? 0 : 1))).size > 1;
+    const byForm =
+      specialForms.some((f) => isHybridStats(f.stats, raw.hybrid)) ||
+      // Only forms with real offense (higher stat >= minOffense) count, so 60/60 -> Mega 60/80 does not
+      new Set(
+        [form, ...specialForms]
+          .filter((f) => Math.max(f.stats[1], f.stats[3]) >= raw.hybrid.minOffense)
+          .map((f) => (f.stats[1] >= f.stats[3] ? 0 : 1)),
+      ).size > 1;
+    let hybrid = cfg.hybridSpecies.has(form.name) || byForm;
+    let hybridNote: string | null = null;
+    if (!hybrid && isHybridStats(form.stats, raw.hybrid)) {
+      const strong = (cat: 0 | 1) =>
+        moveList.find(
+          ([fid, m]) =>
+            m.cat === cat && m.power >= raw.hybrid.minStabPower && types.includes(m.type) &&
+            !cfg.movesetExclude.has(fid) && !m.tags.includes(OHKO_TAG),
+        );
+      const phys = strong(0);
+      const spec = strong(1);
+      if (phys && spec) hybrid = true;
+      else if (phys || spec) {
+        offenseStat = phys ? "atk" : "spa";
+        hybridNote = `공격·특공이 비슷하지만 ${phys ? "물리" : "특수"} 자속기(위력 ${raw.hybrid.minStabPower} 이상)만 있어 ${phys ? "물리" : "특수"}형으로 평가`;
+      } else hybrid = true; // no strong STAB either way: fall back to stats
+    }
     const mainCat = offenseStat === "atk" ? 0 : 1;
     /** 역할·기술 평가에 쓰는 기술: 변화기 + 쓸 분류의 공격기 */
     const usableList = moveList.filter(([, m]) => m.cat === 2 || hybrid || m.cat === mainCat);
@@ -523,6 +560,7 @@ export class CandidateBuilder {
     else notes.push(`추천 성격(${offenseStat === "atk" ? "고집·명랑" : "조심·겁쟁이"}) 미해금`);
 
     if (hybrid) notes.push("물리·특수 겸용 (두 분류 기술 모두 평가)");
+    if (hybridNote) notes.push(hybridNote);
     if (specialForms.length) {
       quality += 1;
       notes.push(`${specialForms.map((f) => f.name).join("·")} 가능`);

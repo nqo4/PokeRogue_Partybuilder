@@ -35,6 +35,8 @@ export interface ResolvedConfig {
   offenseAbilities: Map<number, number>;
   synergyPairs: { abilities: [number, number]; bonus: number; label: string }[];
   abilityEffects: Map<number, AbilityEffect>;
+  /** Pokemon always treated as physical/special hybrid regardless of stats (evaluated form names) */
+  hybridSpecies: Set<string>;
 }
 
 export class ConfigError extends Error {}
@@ -101,7 +103,9 @@ export function resolveConfig(dex: Dex, raw: ClassicConfig = classicJson): Resol
       label: p.label,
     })),
     abilityEffects,
+    hybridSpecies: new Set(raw.hybrid.species),
   };
+  for (const n of raw.hybrid.species) if (!dex.species.some((s) => s.name === n)) missing.push(`포켓몬 "${n}"`);
   if (missing.length) throw new ConfigError(`설정 파일의 이름을 도감에서 찾지 못했습니다: ${missing.join(", ")}`);
   return resolved;
 }
