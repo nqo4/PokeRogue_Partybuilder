@@ -162,6 +162,25 @@ for (const s of species) {
   }
 }
 console.log(`이로치 이미지 ${shinyCopied}장 복사`);
+
+// Image overrides: some PokeRogue-Dex images are outdated or broken (e.g. Onix is missing its lower jaw).
+// Replacements live in scripts/image-overrides/ (same layout as public/images/), built from the first frame of
+// the official pokerogue-assets sprites; shiny tiers 2/3 use the official variant palette. Copy them last.
+const overrideDir = path.join(root, "scripts", "image-overrides");
+let overridden = 0;
+const copyOverrides = (dir, out) => {
+  if (!fs.existsSync(dir)) return;
+  for (const name of fs.readdirSync(dir)) {
+    const src = path.join(dir, name);
+    if (fs.statSync(src).isDirectory()) copyOverrides(src, path.join(out, name));
+    else if (name.endsWith(".png")) {
+      fs.copyFileSync(src, path.join(out, name));
+      overridden++;
+    }
+  }
+};
+copyOverrides(overrideDir, imgOut);
+if (overridden) console.log(`이미지 ${overridden}장을 scripts/image-overrides 로 교체`);
 console.log(
   `완료: 종/폼 ${species.length}개, 스타터 ${species.filter((s) => s.starter).length}개, ` +
     `게임 ${D.gameVersion} (${D.latestDate}), Dex ${commit.slice(0, 7)} → ${path.relative(root, outFile)} ` +
