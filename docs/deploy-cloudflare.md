@@ -9,6 +9,7 @@
 |---|---|
 | `public/_headers` | 캐시 규칙. 빌드할 때 `dist/_headers`로 복사되고 Cloudflare가 읽습니다 |
 | `.node-version` | 빌드 서버의 Node 버전 (22) |
+| `wrangler.jsonc` | Workers로 만든 경우 `npx wrangler deploy`가 `dist/`를 정적 파일로만 올리게 함 (Worker 코드 없음) |
 | `vite.config.ts` 의 `base: "./"` | 어느 주소에 올려도 경로가 깨지지 않음 |
 
 캐시 규칙:
@@ -52,6 +53,10 @@
   같이 두면 두 곳 모두 푸시마다 배포됩니다.
 
 ## 문제가 생기면
+
+- 배포 단계에서 `The version of Vite used in the project ("5.4.21") cannot be automatically configured`가 나오면:
+  Pages가 아니라 Workers 프로젝트로 만들어져 `npx wrangler deploy`가 설정을 자동으로 만들려다 실패한 것입니다.
+  저장소의 `wrangler.jsonc`가 이 문제를 막습니다. 이 파일의 `name`은 Cloudflare 대시보드의 Worker 이름과 같아야 합니다.
 
 - 빌드 실패에 `tsc` 오류가 보이면: 로컬에서 `npm run build`가 통과하는지 먼저 확인합니다.
 - 그림이 바뀌었는데 옛 그림이 보이면: 캐시 때문이며 최대 하루 안에 바뀝니다. 급하면 Cloudflare 프로젝트에서 다시 배포하거나 강력 새로고침(Ctrl+F5)을 합니다.

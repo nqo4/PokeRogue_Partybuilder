@@ -1,0 +1,9 @@
+// Cloudflare Workers config: serve the Vite build as static assets only.
+// No Worker script runs, so asset requests stay free and unmetered.
+{
+  "name": "pokerogue-partybuilder",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
