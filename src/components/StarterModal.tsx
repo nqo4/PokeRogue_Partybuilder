@@ -17,6 +17,7 @@ import { CostValue } from "./CostValue";
 import { CandyIcon } from "./CandyIcon";
 import { friendshipCap } from "../lib/rules";
 import { adviseNature, natureCaption } from "../lib/natureAdvice";
+import { ribbonStates } from "../lib/ribbons";
 
 export const STAT_NAMES = ["HP", "공격", "방어", "특공", "특방", "스피드"];
 export const STATUS_LABEL: Record<FormStatus, string> = { caught: "잡음", seen: "발견만", unseen: "미발견" };
@@ -242,6 +243,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
             )}
             <MovesPanel species={species} dex={dex} />
           </div>
+          <RibbonPanel family={family} dex={dex} owned={owned} hasSave={!!status} />
           <div className="wide">
             <h3>
               진화 계열 ({dex.familyName(species.family)}){" "}
@@ -307,6 +309,37 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Ribbons this family can earn. With a save, earned ones are shown normally and the rest dimmed
+ * (like a seen-only Pokemon). Ribbons are read from the starter, which gets every ribbon of its line.
+ */
+function RibbonPanel({ family, dex, owned, hasSave }: { family: DexSpecies[]; dex: Dex; owned?: OwnedStarter; hasSave: boolean }) {
+  const list = ribbonStates(family, dex, owned?.ribbons, owned?.classicWins);
+  const earned = list.filter((r) => r.earned).length;
+  return (
+    <div className="wide">
+      <h3>
+        리본 (계열 공통){hasSave && ` ${earned}/${list.length}`}{" "}
+        <span className="muted small">
+          — {hasSave ? "얻은 리본은 밝게, 아직 못 얻은 리본은 어둡게 표시" : "세이브를 넣으면 얻은 리본을 표시합니다"}
+        </span>
+      </h3>
+      <ul className="ribbon-list">
+        {list.map(({ def, earned }) => {
+          const state = !hasSave ? "" : earned ? "획득" : "미획득";
+          const note = def.key === "classic" && earned && owned && owned.classicWins > 0 ? ` · 클래식 클리어 ${owned.classicWins}회` : "";
+          return (
+            <li key={def.key} className={hasSave && !earned ? "ribbon-missing" : ""} title={`${def.name}${state && ` — ${state}`}${note}`}>
+              <img src={`${import.meta.env.BASE_URL}images/ribbons/${def.icon}.png`} alt="" width={32} height={32} loading="lazy" />
+              <span>{def.name}</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

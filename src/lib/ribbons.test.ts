@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { Dex, typesInGameOrder, type DexData } from "./dex";
-import { RIBBONS, cleared, eligible, hasRibbon, parseRibbons, type ClearCriterion } from "./ribbons";
+import { RIBBONS, cleared, eligible, hasRibbon, parseRibbons, ribbonStates, type ClearCriterion } from "./ribbons";
 import { decryptSave } from "./save";
 import { buildSummary, type SaveSummary } from "./starters";
 import { Official, type OfficialData } from "./official";
@@ -26,6 +26,29 @@ describe("리본 정의", () => {
     expect(hasRibbon(r, 1)).toBe(false);
     expect(parseRibbons(undefined)).toBe(0n);
     expect(parseRibbons("zz")).toBe(0n);
+  });
+});
+
+describe("ribbonStates", () => {
+  const keysOf = (id: number, ribbons?: bigint, wins?: number) =>
+    ribbonStates(dex.family(dex.starter(id)!.family), dex, ribbons, wins).map((r) => (r.earned ? `${r.def.key}*` : r.def.key));
+
+  it("every ribbon has an icon file", () => {
+    for (const r of RIBBONS) expect(fs.existsSync(path.join(root, "public/images/ribbons", `${r.icon}.png`)), r.icon).toBe(true);
+  });
+
+  it("mono gen / type ribbons follow the family's forms (Charmander: Mega X is Dragon)", () => {
+    const keys = keysOf(4);
+    expect(keys).toEqual(expect.arrayContaining(["classic", "monoGen1", "monoFire", "monoFlying", "monoDragon"]));
+    expect(keys).not.toContain("monoWater");
+    expect(keys).not.toContain("monoGen2");
+  });
+
+  it("marks earned ribbons, and counts pre-ribbon classic wins", () => {
+    expect(keysOf(4, parseRibbons("200")).filter((k) => k.endsWith("*"))).toEqual(["monoFire*"]);
+    expect(keysOf(4, 0n, 2)).toContain("classic*");
+    // a ribbon in the save is listed even when the family rule would leave it out
+    expect(keysOf(4, 1n << 10n)).toContain("monoWater*");
   });
 });
 

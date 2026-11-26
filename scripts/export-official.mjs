@@ -8,7 +8,7 @@
 //   vendor/pokerogue 에서: <node24> <pnpm> install --frozen-lockfile --ignore-scripts
 //   (선택) 아이템 그림: 에셋 저장소에서 아이템 스프라이트 시트만 받는다
 //   git clone --filter=blob:none --no-checkout --depth 1 https://github.com/pagefaultgames/pokerogue-assets.git vendor/pokerogue-assets
-//   git -C vendor/pokerogue-assets sparse-checkout set --no-cone "/images/items.*" "/LICENSES/*" "/starter-colors.json" && git -C vendor/pokerogue-assets checkout
+//   git -C vendor/pokerogue-assets sparse-checkout set --no-cone "/images/items.*" "/images/items/*ribbon*.png" "/LICENSES/*" "/starter-colors.json" && git -C vendor/pokerogue-assets checkout
 //   (Git Bash 에서는 앞에 MSYS_NO_PATHCONV=1 을 붙여야 "/..." 경로가 바뀌지 않는다)
 //   (items.png 는 Nintendo·Creatures·GAME FREAK 의 저작물로, 에셋 저장소가 공정 이용으로 표기한 파일이다)
 //
@@ -65,4 +65,16 @@ if (fs.existsSync(itemsPng)) {
   console.log("아이템 그림 → public/images/items.png");
 } else {
   console.warn("vendor/pokerogue-assets 가 없어 아이템 그림은 건너뜁니다 (파일 맨 위 준비 단계 참고).");
+}
+
+// Ribbon icons (32x32 item images) for the species detail ribbon list (src/lib/ribbons.ts RibbonDef.icon)
+const ribbonDir = path.join(root, "vendor", "pokerogue-assets", "images", "items");
+const ribbonFiles = fs.existsSync(ribbonDir) ? fs.readdirSync(ribbonDir).filter((f) => /ribbon.*\.png$/.test(f)) : [];
+if (ribbonFiles.length) {
+  const dest = path.join(root, "public", "images", "ribbons");
+  fs.mkdirSync(dest, { recursive: true });
+  for (const f of ribbonFiles) fs.copyFileSync(path.join(ribbonDir, f), path.join(dest, f));
+  console.log(`리본 그림 ${ribbonFiles.length}장 → public/images/ribbons`);
+} else {
+  console.warn("리본 그림이 없어 건너뜁니다 (파일 맨 위 준비 단계 참고).");
 }

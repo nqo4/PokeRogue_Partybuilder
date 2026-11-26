@@ -789,3 +789,10 @@ tr.current > td { background: var(--hover); }
 @media (max-width: 900px) {
   .nature-moves { grid-template-columns: 1fr; }
 }
+
+/* Ribbon list in the species detail: earned ribbons normal, missing ones dimmed like a seen-only Pokemon */
+.ribbon-list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 4px; margin: 0; padding: 0 !important; }
+.ribbon-list li { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.72rem; text-align: center; line-height: 1.2; cursor: default; }
+.ribbon-list img { image-rendering: pixelated; }
+.ribbon-list li.ribbon-missing { opacity: 0.55; }
+.ribbon-list li.ribbon-missing img { filter: grayscale(0.7) brightness(0.6); }

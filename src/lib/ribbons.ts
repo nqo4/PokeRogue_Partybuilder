@@ -8,27 +8,47 @@ export interface RibbonDef {
   bit: number;
   key: string;
   name: string;
+  /** Image file in public/images/ribbons (official item image, same as the game's ribbonFlagToAssetKey) */
+  icon: string;
+  /** Mono generation (1-9) or mono type (game type index 0-17) this ribbon needs, if any */
+  gen?: number;
+  gameType?: number;
 }
 
 const TYPE_KEYS = ["Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel", "Fire", "Water", "Grass", "Electric", "Psychic", "Ice", "Dragon", "Dark", "Fairy"];
 const TYPE_NAMES = ["노말", "격투", "비행", "독", "땅", "바위", "벌레", "고스트", "강철", "불꽃", "물", "풀", "전기", "에스퍼", "얼음", "드래곤", "악", "페어리"];
 
 /** 게임의 모든 리본 (39종). 순서는 게임 도감의 리본 표시 순서와 비슷하게 묶었다 */
+// Ribbons without their own image use the game's fallback "ribbon_typeless"
+const TYPELESS = "ribbon_typeless";
+
 export const RIBBONS: RibbonDef[] = [
-  { bit: 27, key: "classic", name: "클래식" },
-  { bit: 29, key: "friendship", name: "친밀 맥스" },
-  { bit: 32, key: "freshStart", name: "새 출발" },
-  { bit: 33, key: "hardcore", name: "하드코어" },
-  { bit: 34, key: "limitedCatch", name: "포획 제한" },
-  { bit: 28, key: "nuzlocke", name: "너즐록" },
-  { bit: 35, key: "noHeal", name: "회복 없음" },
-  { bit: 36, key: "noShop", name: "상점 없음" },
-  { bit: 37, key: "noSupport", name: "회복 제한" },
-  ...Array.from({ length: 9 }, (_, i) => ({ bit: 18 + i, key: `monoGen${i + 1}`, name: `단일 ${i + 1}세대` })),
-  ...TYPE_KEYS.map((k, i) => ({ bit: i, key: `mono${k}`, name: `단일 ${TYPE_NAMES[i]}` })),
-  { bit: 38, key: "activePassives", name: "패시브" },
-  { bit: 31, key: "inverse", name: "거꾸로 배틀" },
-  { bit: 30, key: "flipStats", name: "능력치 역전" },
+  { bit: 27, key: "classic", name: "클래식", icon: "classic_ribbon_default" },
+  { bit: 29, key: "friendship", name: "친밀 맥스", icon: "ribbon_friendship" },
+  { bit: 32, key: "freshStart", name: "새 출발", icon: "fresh_start_ribbon" },
+  { bit: 33, key: "hardcore", name: "하드코어", icon: "hardcore_ribbon" },
+  { bit: 34, key: "limitedCatch", name: "포획 제한", icon: TYPELESS },
+  { bit: 28, key: "nuzlocke", name: "너즐록", icon: TYPELESS },
+  { bit: 35, key: "noHeal", name: "회복 없음", icon: TYPELESS },
+  { bit: 36, key: "noShop", name: "상점 없음", icon: TYPELESS },
+  { bit: 37, key: "noSupport", name: "회복 제한", icon: TYPELESS },
+  ...Array.from({ length: 9 }, (_, i) => ({
+    bit: 18 + i,
+    key: `monoGen${i + 1}`,
+    name: `단일 ${i + 1}세대`,
+    icon: `ribbon_gen${i + 1}`,
+    gen: i + 1,
+  })),
+  ...TYPE_KEYS.map((k, i) => ({
+    bit: i,
+    key: `mono${k}`,
+    name: `단일 ${TYPE_NAMES[i]}`,
+    icon: `ribbon_${k.toLowerCase()}`,
+    gameType: i,
+  })),
+  { bit: 38, key: "activePassives", name: "패시브", icon: TYPELESS },
+  { bit: 31, key: "inverse", name: "거꾸로 배틀", icon: "inverse_ribbon" },
+  { bit: 30, key: "flipStats", name: "능력치 역전", icon: "flip_stats_ribbon" },
 ];
 
 /** 세이브의 리본 문자열(16진수) → 비트 */
@@ -84,4 +104,30 @@ export function cleared(s: OwnedStarter, c: ClearCriterion, dex: Dex): boolean {
   if (c.mode === "gen") return hasRibbon(s.ribbons, monoGenBit(c.gen));
   const i = gameTypeIndex(dex, c.type);
   return i >= 0 && hasRibbon(s.ribbons, i);
+}
+
+export interface RibbonState {
+  def: RibbonDef;
+  earned: boolean;
+}
+
+/**
+ * Ribbons a family can earn, with whether each is earned.
+ * Mono generation / type ribbons follow the game's starter rule (eligible): some playable form in the
+ * family must have that generation or type. Every other ribbon is open to all.
+ * A ribbon found in the save is always listed, even if the rule above would leave it out.
+ * Classic also counts as earned when the starter has classic wins from before ribbons existed.
+ */
+export function ribbonStates(family: DexSpecies[], dex: Dex, ribbons = 0n, classicWins = 0): RibbonState[] {
+  const forms = family.filter(playable);
+  const canEarn = (r: RibbonDef) =>
+    r.gen != null
+      ? forms.some((f) => formAllowed(f, { mode: "gen", gen: r.gen! }))
+      : r.gameType != null
+        ? forms.some((f) => f.types.some((t) => gameTypeIndex(dex, t) === r.gameType))
+        : true;
+  return RIBBONS.map((def) => ({
+    def,
+    earned: hasRibbon(ribbons, def.bit) || (def.key === "classic" && classicWins > 0),
+  })).filter((r) => r.earned || canEarn(r.def));
 }
