@@ -429,7 +429,9 @@ tr.current > td { background: var(--hover); }
 /* ── 트레이너 도감 */
 .trainer-group h2 { margin: 24px 0 8px; font-size: 1.35rem; }
 .trainer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
-.trainer-card { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.trainer-card { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.trainer-body { flex: 1; min-width: 0; }
+.trainer-pic { flex: none; width: 64px; height: 64px; object-fit: contain; object-position: bottom; image-rendering: pixelated; }
 .trainer-card header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
 .trainer-card p { margin: 4px 0 0; }
 .trainer-party { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -462,6 +464,8 @@ tr.current > td { background: var(--hover); }
 .biome-list button:hover { background: var(--hover); }
 .biome-list button.active { background: var(--accent); color: var(--on-accent); }
 .biome-detail h2 { margin: 0 0 8px; }
+.biome-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.biome-bg { width: 160px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); image-rendering: pixelated; }
 .biome-detail h3 { margin: 14px 0 6px; }
 .pool-row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .pool-tier { display: flex; flex-direction: column; }
@@ -495,12 +499,15 @@ tr.current > td { background: var(--hover); }
 .map-arrow.third { fill: #a39a12; }
 .map-arrow.active { fill: var(--locked); }
 .map-node { cursor: pointer; }
-.map-node rect { fill: var(--hover); stroke: var(--border); stroke-width: 2; }
-.map-node text { font-size: 20px; font-weight: 700; fill: var(--text); }
-.map-node:hover rect, .map-node:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
-.map-node.active rect { fill: var(--accent); stroke: var(--accent); }
-.map-node.active text { fill: var(--on-accent); }
-.map-node .map-start, .map-node.active .map-start { font-size: 16px; fill: #2e9e44; }
+/* Biome card: background image under a dark shade so the name stays readable */
+.map-node .map-bg { image-rendering: pixelated; }
+.map-node .map-shade { fill: rgba(0, 0, 0, 0.38); stroke: none; }
+.map-node .map-frame { fill: none; stroke: var(--border); stroke-width: 2; }
+.map-node text { font-size: 20px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.75); stroke-width: 4px; stroke-linejoin: round; }
+.map-node:hover .map-frame, .map-node:focus-visible .map-frame { stroke: var(--accent); stroke-width: 3; }
+.map-node.active .map-shade { fill: color-mix(in srgb, var(--accent) 45%, transparent); }
+.map-node.active .map-frame { stroke: var(--accent); stroke-width: 4; }
+.map-node .map-start, .map-node.active .map-start { font-size: 16px; fill: #2e9e44; stroke: none; }
 .map-node:focus { outline: none; }
 
 /* ── 이로치 단계 (1럭 노랑 · 2럭 파랑 · 3럭 빨강) */

@@ -96,17 +96,29 @@ export function TrainersView({ dex }: { dex: Dex }) {
     return <div className="trainer-party">{rows.map((s, i) => slotView(s, i, !!opts?.ace && i === last))}</div>;
   };
 
-  const card = (t: Trainer, extra?: string, note?: string, opts?: { ace?: boolean }) => (
+  /** note: undefined = default hint for signature-only trainers, null = no note */
+  const card = (t: Trainer, extra?: string, note?: string | null, opts?: { ace?: boolean }) => (
     <article key={t.type} className="trainer-card">
+      {t.sprite && (
+        <img
+          className="trainer-pic"
+          src={`${import.meta.env.BASE_URL}images/trainers/${t.sprite}.png`}
+          alt=""
+          loading="lazy"
+          onError={(e) => (e.currentTarget.style.visibility = "hidden")}
+        />
+      )}
+      <div className="trainer-body">
       <header>
         <b>{t.name}</b> {typeBadge(t.specialty)}
         {extra && <span className="muted small"> {extra}</span>}
       </header>
       {party(t, opts)}
       {note && <p className="small muted">{note}</p>}
-      {!note && t.signature && !t.slots.length && (
+      {note === undefined && t.signature && !t.slots.length && (
         <p className="small muted">대표 포켓몬 (나머지는 전문 타입에서 무작위). 점선 「택1」 칸은 그중 한 마리가 나옵니다.</p>
       )}
+      </div>
     </article>
   );
 
@@ -134,7 +146,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
           {[...adminWaves].map(([type, waves]) => {
             const t = official.trainerByType.get(type);
             if (!t) return null;
-            return card(t, `· ${waves.join("·")}웨이브`, "주 포켓몬 (마지막 칸이 에이스)", { ace: true });
+            return card(t, `· ${waves.join("·")}웨이브`, null, { ace: true });
           })}
         </div>
         <h3>보스</h3>

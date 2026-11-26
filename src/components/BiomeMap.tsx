@@ -2,6 +2,8 @@
 // 선은 칸을 가로지르지 않도록 꺾인 길(ROUTES)로 그린다. 길이 정해지지 않은 연결은 곧은 선으로 그린다.
 import type { Official } from "../lib/official";
 
+const biomeImage = (key: string) => `${import.meta.env.BASE_URL}images/biomes/${key.toLowerCase()}.png`;
+
 /** 칸 가운데 좌표. 커뮤니티 지도와 같은 배치 */
 const POS: Record<string, [number, number]> = {
   DOJO: [255, 71], JUNGLE: [562, 71], TEMPLE: [715, 71],
@@ -169,7 +171,19 @@ export function BiomeMap({
               onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && onSelect(b.id)}
             >
               <title>{b.name} 정보 보기</title>
-              <rect width={W} height={H} rx="8" />
+              <clipPath id={`map-clip-${b.id}`}>
+                <rect width={W} height={H} rx="8" />
+              </clipPath>
+              <image
+                href={biomeImage(b.key)}
+                width={W}
+                height={H}
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#map-clip-${b.id})`}
+                className="map-bg"
+              />
+              <rect width={W} height={H} rx="8" className="map-shade" />
+              <rect width={W} height={H} rx="8" className="map-frame" />
               <text x={W / 2} y={H / 2 + 7} textAnchor="middle">
                 {b.name}
               </text>

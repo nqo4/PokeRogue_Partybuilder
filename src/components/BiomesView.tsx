@@ -15,6 +15,9 @@ const WEATHER_KO: Record<string, string> = {
 };
 const pct = (x: number) => (x >= 0.1 ? `${(x * 100).toFixed(0)}%` : `${(x * 100).toFixed(1)}%`);
 
+/** Biome background (pokerogue-assets images/arenas/{key}_bg.png) */
+export const biomeImage = (key: string) => `${import.meta.env.BASE_URL}images/biomes/${key.toLowerCase()}.png`;
+
 export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, FormStatus> }) {
   const official = useOfficial();
   const [selected, setSelected] = useState<number | null>(null);
@@ -67,7 +70,10 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
         ))}
       </nav>
       <div className="biome-detail">
-        <h2>{cur.name}</h2>
+        <h2 className="biome-title">
+          {cur.name}
+          <img className="biome-bg" src={biomeImage(cur.key)} alt={`${cur.name} 배경`} />
+        </h2>
         <p>
           <span className="label">다음 바이옴</span>{" "}
           {cur.links.length ? (

@@ -77,6 +77,8 @@ export interface Trainer {
   gen: number | null;
   /** 관장으로 나오는 바이옴 */
   biomes: number[];
+  /** 트레이너 그림 키 (public/images/trainers/{sprite}.png) */
+  sprite: string | null;
 }
 
 export interface TrainerSlot {

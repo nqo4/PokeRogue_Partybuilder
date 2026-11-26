@@ -351,6 +351,8 @@ test("export party builder data", async () => {
       signature: sig?.length ? sig.map((x) => (Array.isArray(x) ? x : [x])) : null,
       // 슬롯 번호별 고정 후보 (사천왕·챔피언 등)
       slots: partySlots(name),
+      // Sprite atlas key in pokerogue-assets images/trainer (male variant for gendered classes)
+      sprite: cfg ? cfg.getSpriteKey(false) : null,
     };
   };
 
