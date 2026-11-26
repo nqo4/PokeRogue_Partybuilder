@@ -318,15 +318,16 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
  * (like a seen-only Pokemon). Ribbons are read from the starter, which gets every ribbon of its line.
  */
 function RibbonPanel({ family, dex, owned, hasSave }: { family: DexSpecies[]; dex: Dex; owned?: OwnedStarter; hasSave: boolean }) {
-  const list = ribbonStates(family, dex, owned?.ribbons, owned?.classicWins);
+  const official = useOfficial();
+  // The game walks evolutions from the starter (official evolution data includes regional evolutions)
+  const starterId = owned?.speciesId ?? family.find((f) => f.starter)?.id ?? family[0].id;
+  const line = official ? official.evolutionLine(starterId) : [...new Set(family.map((f) => f.id))];
+  const list = ribbonStates(line, dex, owned?.ribbons, owned?.classicWins);
   const earned = list.filter((r) => r.earned).length;
   return (
     <div className="wide">
       <h3>
-        리본 (계열 공통){hasSave && ` ${earned}/${list.length}`}{" "}
-        <span className="muted small">
-          — {hasSave ? "얻은 리본은 밝게, 아직 못 얻은 리본은 어둡게 표시" : "세이브를 넣으면 얻은 리본을 표시합니다"}
-        </span>
+        리본 (계열 공통){hasSave && ` ${earned}/${list.length}`}
       </h3>
       <ul className="ribbon-list">
         {list.map(({ def, earned }) => {
@@ -413,13 +414,7 @@ function NatureGrid({ unlocked, stats }: { unlocked: number[]; stats: readonly n
         document.body,
       )}
     <p className="nature-legend small muted">
-      <span className="legend-best">추천 성격</span> {advice.why} 기준
-      {advice.fallback != null && (
-        <>
-          {" "}· <span className="legend-fallback">{NATURE_NAMES[advice.fallback]}</span> 추천 성격이 없어 보유 성격 중 차선책
-        </>
-      )}
-      {" "}· 칸에 마우스를 올리면 쓰임새 · 흐린 글자 = 미보유 · 기울임 = 무보정
+      <span className="legend-best">추천 성격</span> <span className="legend-fallback">차선책</span>
     </p>
     </>
   );

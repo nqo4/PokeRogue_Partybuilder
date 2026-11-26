@@ -31,13 +31,15 @@ describe("리본 정의", () => {
 
 describe("ribbonStates", () => {
   const keysOf = (id: number, ribbons?: bigint, wins?: number) =>
-    ribbonStates(dex.family(dex.starter(id)!.family), dex, ribbons, wins).map((r) => (r.earned ? `${r.def.key}*` : r.def.key));
+    ribbonStates([...new Set(dex.family(dex.starter(id)!.family).map((f) => f.id))], dex, ribbons, wins).map((r) =>
+      r.earned ? `${r.def.key}*` : r.def.key,
+    );
 
   it("every ribbon has an icon file", () => {
     for (const r of RIBBONS) expect(fs.existsSync(path.join(root, "public/images/ribbons", `${r.icon}.png`)), r.icon).toBe(true);
   });
 
-  it("mono gen / type ribbons follow the family's forms (Charmander: Mega X is Dragon)", () => {
+  it("mono gen / type ribbons follow the line's species and forms (Charmander: Mega X is Dragon)", () => {
     const keys = keysOf(4);
     expect(keys).toEqual(expect.arrayContaining(["classic", "monoGen1", "monoFire", "monoFlying", "monoDragon"]));
     expect(keys).not.toContain("monoWater");
@@ -46,6 +48,8 @@ describe("ribbonStates", () => {
 
   it("marks earned ribbons, and counts pre-ribbon classic wins", () => {
     expect(keysOf(4, parseRibbons("200")).filter((k) => k.endsWith("*"))).toEqual(["monoFire*"]);
+    // No Support also shows No Heal and No Shop as earned (game ribbon tray)
+    expect(keysOf(4, 1n << 37n).filter((k) => k.endsWith("*"))).toEqual(["noHeal*", "noShop*", "noSupport*"]);
     expect(keysOf(4, 0n, 2)).toContain("classic*");
     // a ribbon in the save is listed even when the family rule would leave it out
     expect(keysOf(4, 1n << 10n)).toContain("monoWater*");

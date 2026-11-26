@@ -112,22 +112,31 @@ export interface RibbonState {
 }
 
 /**
- * Ribbons a family can earn, with whether each is earned.
- * Mono generation / type ribbons follow the game's starter rule (eligible): some playable form in the
- * family must have that generation or type. Every other ribbon is open to all.
- * A ribbon found in the save is always listed, even if the rule above would leave it out.
- * Classic also counts as earned when the starter has classic wins from before ribbons existed.
+ * Ribbons a line can earn, in the game's display order, with whether each is earned.
+ * Same rule as the game's getAvailableRibbons (src/utils/ribbon-utils.ts): every non-mono ribbon, plus the
+ * generation of each species in the evolution line (base species generation, not forms) and every type
+ * of each of those species and all their forms. `line` is the starter and its evolutions (SpeciesIds).
+ * Earned also follows the game's ribbon tray: classic counts with classic wins from before ribbons existed,
+ * and No Heal / No Shop count when the No Support ribbon is earned.
+ * A ribbon found in the save is always listed.
  */
-export function ribbonStates(family: DexSpecies[], dex: Dex, ribbons = 0n, classicWins = 0): RibbonState[] {
-  const forms = family.filter(playable);
-  const canEarn = (r: RibbonDef) =>
-    r.gen != null
-      ? forms.some((f) => formAllowed(f, { mode: "gen", gen: r.gen! }))
-      : r.gameType != null
-        ? forms.some((f) => f.types.some((t) => gameTypeIndex(dex, t) === r.gameType))
-        : true;
+export function ribbonStates(line: number[], dex: Dex, ribbons = 0n, classicWins = 0): RibbonState[] {
+  const gens = new Set<number>();
+  const types = new Set<number>();
+  for (const id of line) {
+    const forms = dex.species.filter((s) => s.id === id);
+    const base = dex.byId(id);
+    if (base) gens.add(base.gen);
+    for (const f of forms) for (const t of f.types) types.add(gameTypeIndex(dex, t));
+  }
+  const noSupport = hasRibbon(ribbons, 37);
   return RIBBONS.map((def) => ({
     def,
-    earned: hasRibbon(ribbons, def.bit) || (def.key === "classic" && classicWins > 0),
-  })).filter((r) => r.earned || canEarn(r.def));
+    earned:
+      hasRibbon(ribbons, def.bit) ||
+      (def.key === "classic" && classicWins > 0) ||
+      ((def.key === "noHeal" || def.key === "noShop") && noSupport),
+  })).filter(
+    (r) => r.earned || (r.def.gen != null ? gens.has(r.def.gen) : r.def.gameType != null ? types.has(r.def.gameType) : true),
+  );
 }
