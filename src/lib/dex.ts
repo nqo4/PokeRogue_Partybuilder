@@ -1,12 +1,13 @@
-// scripts/build-dex.mjs 가 만든 public/data/dex.json 의 형식과 조회 도우미.
+// Shape of public/data/dex.json (built from the official PokeRogue code by scripts/official-export/dex.test.ts)
+// and lookup helpers. IDs (fid): types 0-17 = PokemonType, abilities 1000 + AbilityId, moves 2000 + MoveId.
 
-/** 기술 습득 방법 코드 (Dex 원본 그대로).
+/** 기술 습득 방법 코드.
  * -1 기억버섯, 0 진화 시, 1~200 레벨, 201~203 알기술(+머신), 204 알기술,
  * 205~207 레어 알기술(+머신), 208 레어 알기술, 209~211 머신(일반/슈퍼/하이퍼) */
 export type LearnCode = number;
 
 export interface DexSpecies {
-  /** items 배열 위치 (Dex 내부 인덱스) */
+  /** species 배열 위치 */
   idx: number;
   /** 포켓로그 SpeciesId. 세이브의 dexData/starterData 키와 같다 (리전폼은 2000·4000·6000·8000번대) */
   id: number;
@@ -48,8 +49,8 @@ export interface DexData {
     date: string;
   };
   ranges: { type: [number, number]; ability: [number, number]; move: [number, number] };
-  /** fid → 한국어 이름 (타입·특성·기술) */
-  names: string[];
+  /** fid → 한국어 이름 (타입·특성·기술). 쓰지 않는 번호는 null */
+  names: (string | null)[];
   /** 타입 fid → 색상 */
   typeColors: string[];
   familyNames: Record<string, string>;
@@ -85,7 +86,7 @@ export interface MoveInfo {
   tags: number[];
 }
 
-/** Dex 의 태그 번호 (lang/ko.js tagToDesc) 중 쓰는 것 */
+/** 태그 번호 (dex.json tagNames) 중 앱이 쓰는 것 */
 export const TAG = {
   TARGET_ALL_ENEMIES: 1,
   TARGET_ALL_FIELD: 2,
@@ -112,7 +113,7 @@ export const TAG = {
 /** 게임의 타입 순서 (스타터 선택 화면의 타입 필터와 같다) */
 const GAME_TYPE_ORDER = ["노말", "격투", "비행", "독", "땅", "바위", "벌레", "고스트", "강철", "불꽃", "물", "풀", "전기", "에스퍼", "얼음", "드래곤", "악", "페어리"];
 
-/** 타입 fid 들을 게임 순서로 (Dex 의 fid 순서는 게임 순서와 다르다) */
+/** 타입 fid 들을 게임 순서로 */
 export function typesInGameOrder(dex: Dex): number[] {
   const all = Array.from({ length: dex.data.ranges.type[1] }, (_, t) => t);
   const rank = (t: number) => {
@@ -137,7 +138,7 @@ export class Dex {
 
   constructor(data: DexData) {
     this.data = data;
-    // 같은 SpeciesId 안에서의 순서 = 게임의 formIndex (Dex 는 게임 폼 순서대로 행을 만든다)
+    // 같은 SpeciesId 안에서의 순서 = 게임의 formIndex (추출기가 게임 폼 순서대로 행을 만든다)
     const formCount = new Map<number, number>();
     for (const s of data.species) {
       const n = formCount.get(s.id) ?? 0;
@@ -229,7 +230,10 @@ export class Dex {
     if (!index) {
       index = new Map();
       const [from, to] = this.data.ranges[kind];
-      for (let i = from; i < to; i++) if (!index.has(this.data.names[i])) index.set(this.data.names[i], i);
+      for (let i = from; i < to; i++) {
+        const n = this.data.names[i];
+        if (n != null && !index.has(n)) index.set(n, i);
+      }
       this.nameIndex.set(kind, index);
     }
     return index.get(name) ?? -1;

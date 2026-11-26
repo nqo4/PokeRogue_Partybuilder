@@ -8,7 +8,7 @@ export default defineConfig(async (config) => ({
   test: {
     environment: "jsdom",
     setupFiles: ["./scripts/game-data-exporter/game-data-exporter.setup.ts"],
-    include: ["./scripts/pb-export/export.test.ts"],
+    include: [process.env.PB_EXPORT_ONLY ?? "./scripts/pb-export/*.test.ts"],
     disableConsoleIntercept: true,
   },
 }));

@@ -27,8 +27,8 @@ describe("Dex 데이터", () => {
     };
     expect(fam("파이리")["리자몽"]).toBe("불꽃/비행");
     expect(fam("루리리")["마릴"]).toBe("물/페어리");
-    expect(fam("꼬시레")["메가 갑주무사"]).toBe("벌레/강철");
-    expect(fam("가보리")["메가 보스로라"]).toBe("강철");
+    expect(fam("꼬시레")["메가갑주무사"]).toBe("벌레/강철");
+    expect(fam("가보리")["메가보스로라"]).toBe("강철");
   });
 });
 

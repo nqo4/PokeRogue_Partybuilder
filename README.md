@@ -16,8 +16,8 @@
 
 ```bash
 npm install
-npm run build:dex   # PokeRogue-Dex 를 vendor/ 에 받아 public/data/dex.json 생성
-npm run export:official   # (선택) 공식 저장소에서 진화·바이옴·트레이너 데이터 추출. 준비 단계는 scripts/export-official.mjs 맨 위 참고
+npm run export:official   # 공식 저장소에서 도감·진화·바이옴·트레이너 데이터 추출. 준비 단계는 scripts/export-official.mjs 맨 위 참고
+npm run build:sprites     # 공식 에셋 저장소의 스프라이트로 포켓몬·이로치 그림 생성
 npm run dev
 npm test            # testdata/*.prsv 또는 SAVE_PATH 가 있으면 실제 세이브 테스트도 실행
 ```
@@ -28,21 +28,21 @@ npm test            # testdata/*.prsv 또는 SAVE_PATH 가 있으면 실제 세�
 
 | 경로 | 내용 |
 |---|---|
-| `scripts/build-dex.mjs` | Dex 데이터 → 정규화 JSON 변환 |
 | `src/lib/save.ts` | 세이브 복호화, 원본 구조 타입 |
 | `src/lib/rules.ts` | 공식 클라이언트와 대조한 게임 규칙 (DexAttr, 코스트 감소, 성격 등) |
 | `src/lib/dex.ts` | 도감 데이터 타입·조회 |
 | `src/lib/starters.ts` | 세이브 + 도감 → 보유 스타터 모델 |
 | `src/lib/classic/` | 클래식 추천: 후보 평가(역할), 파티 분석(상성), 빔 탐색 |
 | `src/config/*.json` | 추천 규칙·특성 효과 설정 (패치 시 이 파일만 수정) |
-| `scripts/export-official.mjs`, `scripts/official-export/` | 공식 저장소 안에서 실행하는 추출 스크립트 → `public/data/official.json` |
+| `scripts/export-official.mjs`, `scripts/official-export/` | 공식 저장소 안에서 실행하는 추출 스크립트 → `public/data/dex.json`, `public/data/official.json` |
+| `scripts/build-sprites.mjs` | 공식 스프라이트(첫 프레임)와 이로치 팔레트 → `public/images/` |
 | `src/lib/official.ts`, `src/lib/route.ts` | 공식 데이터 타입·조회, 지도 경로 추천 |
 | `scripts/try-recommend.ts` | 개발용: 실제 세이브로 추천 결과 콘솔 출력 (`npx vite-node scripts/try-recommend.ts`) |
 
 ## 출처와 라이선스
 
-- 포켓몬 데이터: [Sandstormer/PokeRogue-Dex](https://github.com/Sandstormer/PokeRogue-Dex) (AGPL-3.0)
-- 게임 규칙 확인: [pagefaultgames/pokerogue](https://github.com/pagefaultgames/pokerogue) (AGPL-3.0)
+- 게임 데이터·규칙: [pagefaultgames/pokerogue](https://github.com/pagefaultgames/pokerogue) (AGPL-3.0)
+- 그림: [pagefaultgames/pokerogue-assets](https://github.com/pagefaultgames/pokerogue-assets) (포켓몬·아이템 그림은 Nintendo · Creatures · GAME FREAK 의 저작물로, 원 저장소에서 공정 이용으로 표기)
 
 위 저장소의 데이터를 가공해 사용하므로 이 프로젝트도 AGPL-3.0 을 따릅니다.
 팬이 만든 비공식 도구이며 포켓로그 개발팀과 관련이 없습니다. 포켓몬 관련 명칭의 권리는 Nintendo · Creatures · GAME FREAK 에 있습니다.
