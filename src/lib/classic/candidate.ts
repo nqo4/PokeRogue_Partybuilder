@@ -172,16 +172,22 @@ export interface OffenseKind {
  * Physical / special split, shared by the recommender and the species detail. Hybrid when:
  *   - the form is on the config exception list (hybrid.species, e.g. Dragonite, Nidoking), or
  *   - a mega / form change has hybrid stats or flips the main category (e.g. Garchomp -> Mega Z), or
- *   - the form's own attack and sp. attack are close (config hybrid), unless only one category has a
- *     strong STAB move: then only that category counts and it becomes the main one.
+ *   - the form's own attack and sp. attack are close (config hybrid), unless the strong STAB moves lean one way:
+ *     only one category has a strong STAB move, or (with both) one category has at least stabCountRatio times
+ *     as many strong STAB moves counting TMs (Jirachi: Psychic, Flash Cannon, Psyshock... vs Meteor Mash...).
+ *     Then only that category counts and it becomes the main one.
  * Otherwise only the higher stat's category counts (Swampert: physical moves instead of Muddy Water).
- * `moveList` is the moves the Pokemon can use (level-up, evolution, relearn, egg moves).
+ * `moveList` is the moves the Pokemon can use (level-up, evolution, relearn, egg moves); `tmMoves` adds the
+ * TMs it can learn, used only to count strong STAB moves.
  */
 export function offenseKind(
   form: DexSpecies,
   specialForms: DexSpecies[],
   moveList: readonly MoveEntry[],
-  cfg: Pick<ResolvedConfig, "hybridSpecies" | "movesetExclude"> & { raw: { hybrid: HybridRule & { minStabPower: number } } },
+  cfg: Pick<ResolvedConfig, "hybridSpecies" | "movesetExclude"> & {
+    raw: { hybrid: HybridRule & { minStabPower: number; stabCountRatio: number } };
+  },
+  tmMoves: readonly MoveEntry[] = [],
 ): OffenseKind {
   const rule = cfg.raw.hybrid;
   const [, atk, , spa] = form.stats;
@@ -197,16 +203,23 @@ export function offenseKind(
   let hybrid = cfg.hybridSpecies.has(form.name) || byForm;
   let note: string | null = null;
   if (!hybrid && isHybridStats(form.stats, rule)) {
-    const strong = (cat: 0 | 1) =>
-      moveList.find(
-        ([fid, m]) =>
-          m.cat === cat && m.power >= rule.minStabPower && form.types.includes(m.type) &&
-          !cfg.movesetExclude.has(fid) && !m.tags.includes(OHKO_TAG),
-      );
-    const phys = strong(0);
-    const spec = strong(1);
-    if (phys && spec) hybrid = true;
-    else if (phys || spec) {
+    const isStrong = (cat: 0 | 1) => ([fid, m]: MoveEntry) =>
+      m.cat === cat && m.power >= rule.minStabPower && form.types.includes(m.type) &&
+      !cfg.movesetExclude.has(fid) && !m.tags.includes(OHKO_TAG);
+    let phys = moveList.some(isStrong(0));
+    let spec = moveList.some(isStrong(1));
+    if (phys && spec) {
+      // Both have one: lean toward the category with clearly more strong STAB moves, TMs included
+      const pool = [...new Map([...moveList, ...tmMoves].map((e) => [e[0], e] as const)).values()];
+      const nPhys = pool.filter(isStrong(0)).length;
+      const nSpec = pool.filter(isStrong(1)).length;
+      if (nSpec >= nPhys * rule.stabCountRatio) phys = false;
+      else if (nPhys >= nSpec * rule.stabCountRatio) spec = false;
+      if (phys !== spec) {
+        offenseStat = phys ? "atk" : "spa";
+        note = `공격·특공이 비슷하고 양쪽에 자속기가 있지만, 기술머신 포함 위력 ${rule.minStabPower} 이상 자속기가 ${phys ? `물리 ${nPhys}개 · 특수 ${nSpec}개` : `특수 ${nSpec}개 · 물리 ${nPhys}개`}라 ${phys ? "물리" : "특수"}형으로 평가`;
+      } else hybrid = true;
+    } else if (phys || spec) {
       offenseStat = phys ? "atk" : "spa";
       note = `공격·특공이 비슷하지만 ${phys ? "물리" : "특수"} 자속기(위력 ${rule.minStabPower} 이상)만 있어 ${phys ? "물리" : "특수"}형으로 평가`;
     } else hybrid = true; // no strong STAB either way: fall back to stats
@@ -219,6 +232,14 @@ export function offenseKind(
  * form and its earlier stages, plus all four egg moves of the line. Only the form's own stats count here
  * (megas and other forms have their own detail), unlike the recommender which also looks at them.
  */
+/** TMs a form can learn (learn codes 201-203, 205-207 and 209-211 carry a TM tier) */
+function tmMovesOf(form: DexSpecies, dex: Dex): MoveEntry[] {
+  return Object.entries(form.moves)
+    .filter(([, c]) => (c >= 201 && c <= 203) || (c >= 205 && c <= 207) || (c >= 209 && c <= 211))
+    .map(([k]) => [Number(k), dex.move(Number(k))] as const)
+    .filter((x): x is readonly [number, MoveInfo] => !!x[1] && !x[1].tags.includes(TAG.NOT_IMPLEMENTED));
+}
+
 export function speciesOffenseKind(
   form: DexSpecies,
   family: DexSpecies[],
@@ -233,7 +254,7 @@ export function speciesOffenseKind(
   const moveList = [...fids]
     .map((fid) => [fid, dex.move(fid)] as const)
     .filter((x): x is readonly [number, MoveInfo] => !!x[1] && !x[1].tags.includes(TAG.NOT_IMPLEMENTED));
-  return offenseKind(form, [], moveList, cfg);
+  return offenseKind(form, [], moveList, cfg, tmMovesOf(form, dex));
 }
 
 export class CandidateBuilder {
@@ -320,7 +341,7 @@ export class CandidateBuilder {
 
     // ── Physical / special split (see offenseKind)
     const specialForms = owned.family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4 && this.allow(f));
-    const { offenseStat, hybrid, note: hybridNote } = offenseKind(form, specialForms, moveList, cfg);
+    const { offenseStat, hybrid, note: hybridNote } = offenseKind(form, specialForms, moveList, cfg, tmMovesOf(form, dex));
     const mainCat = offenseStat === "atk" ? 0 : 1;
     /** 역할·기술 평가에 쓰는 기술: 변화기 + 쓸 분류의 공격기 */
     const usableList = moveList.filter(([, m]) => m.cat === 2 || hybrid || m.cat === mainCat);

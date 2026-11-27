@@ -20,12 +20,13 @@
   },
 
   "hybrid": {
-    "_설명": "물리·특수 겸용 판정. 높은 쪽(공격·특공)이 minOffense 이상이면서, 낮은 쪽이 높은 쪽의 closeRatio 이상이거나 낮은 쪽이 highMin 이상이면서 highRatio 이상이면 겸용. 메가진화·폼 변화로 주 공격이 바뀌어도 겸용. 능력치로 겸용이어도 위력 minStabPower 이상 자속기가 한쪽 분류에만 있으면 그쪽만(주 공격도 그쪽). species 는 기준과 상관없이 겸용으로 보는 포켓몬(평가 형태 이름)",
+    "_설명": "물리·특수 겸용 판정. 높은 쪽(공격·특공)이 minOffense 이상이면서, 낮은 쪽이 높은 쪽의 closeRatio 이상이거나 낮은 쪽이 highMin 이상이면서 highRatio 이상이면 겸용. 메가진화·폼 변화로 주 공격이 바뀌어도 겸용. 능력치로 겸용이어도 위력 minStabPower 이상 자속기가 한쪽 분류에만 있으면 그쪽만(주 공격도 그쪽). 양쪽에 다 있으면 기술머신까지 포함한 그 자속기 개수를 비교해 한쪽이 stabCountRatio 배 이상이면 그쪽만. species 는 기준과 상관없이 겸용으로 보는 포켓몬(평가 형태 이름)",
     "minOffense": 80,
     "closeRatio": 0.85,
     "highMin": 100,
     "highRatio": 0.75,
     "minStabPower": 80,
+    "stabCountRatio": 2,
     "species": ["망나뇽", "니드킹", "니드퀸"]
   },
 

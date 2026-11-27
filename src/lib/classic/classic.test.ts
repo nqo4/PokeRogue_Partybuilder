@@ -5,7 +5,7 @@ import { Dex, type DexData } from "../dex";
 import { decryptSave } from "../save";
 import { buildSummary, type SaveSummary } from "../starters";
 import { buildTypeMatrix, typeMultiplier } from "../typeChart";
-import { CandidateBuilder, attackScore, isHybridStats } from "./candidate";
+import { CandidateBuilder, attackScore, isHybridStats, speciesOffenseKind } from "./candidate";
 import classicJson from "../../config/classic.json";
 import { resolveConfig } from "./config";
 import { ClassicRecommender, hasFormChange, type PartyRecommendation } from "./recommend";
@@ -346,5 +346,26 @@ describe.skipIf(!savePath)("물리막이·특수막이", () => {
     );
     expect(healers.length).toBeGreaterThan(0);
     for (const c of healers) expect(c.roles.physTank.reasons.some((r) => r.text === "회복 특성"), c.form.name).toBe(true);
+  });
+});
+
+describe("physical / special label (species detail)", () => {
+  const cfg = resolveConfig(dex);
+  const kind = (name: string) => {
+    const s = dex.species.find((x) => x.name === name)!;
+    const k = speciesOffenseKind(s, dex.family(s.family), dex, cfg);
+    return k.hybrid ? "hybrid" : k.offenseStat;
+  };
+
+  it("settles 100/100 forms by their strong STAB moves", () => {
+    expect(kind("뮤")).toBe("spa"); // only special STAB moves of power 80+
+    expect(kind("지라치")).toBe("spa"); // both kinds, but special has 2x as many counting TMs
+    expect(kind("덩쿠림보")).toBe("atk");
+  });
+
+  it("keeps clear stat leaders and real mixed attackers", () => {
+    expect(kind("대짱이")).toBe("atk");
+    expect(kind("리자몽")).toBe("spa");
+    expect(kind("원시그란돈")).toBe("hybrid");
   });
 });
