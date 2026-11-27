@@ -158,6 +158,37 @@ for (const key of new Set(official.trainers.map((t) => t.sprite).filter(Boolean)
   write(img, path.join(trainerOut, `${key}.png`));
   trainers++;
 }
+/** Arena layer at full canvas size: a plain PNG, or the first frame of an atlas placed at its source offset */
+function layerImage(base) {
+  if (fs.existsSync(`${base}.json`) && fs.existsSync(`${base}.png`)) {
+    const f = framesOf(`${base}.json`).sort((a, b) => (a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0))[0];
+    if (!f || f.rotated) return null;
+    const sheet = readPng(`${base}.png`);
+    const img = new PNG({ width: f.sourceSize.w, height: f.sourceSize.h });
+    for (let j = 0; j < f.frame.h; j++) {
+      const from = ((f.frame.y + j) * sheet.width + f.frame.x) * 4;
+      const to = ((f.spriteSourceSize.y + j) * img.width + f.spriteSourceSize.x) * 4;
+      sheet.data.copy(img.data, to, from, from + f.frame.w * 4);
+    }
+    return img;
+  }
+  return fs.existsSync(`${base}.png`) ? readPng(`${base}.png`) : null;
+}
+
+/** Alpha-blend `top` onto `dst` at the top-left corner */
+function blend(dst, top) {
+  for (let y = 0; y < Math.min(dst.height, top.height); y++) {
+    for (let x = 0; x < Math.min(dst.width, top.width); x++) {
+      const s = (y * top.width + x) * 4;
+      const a = top.data[s + 3] / 255;
+      if (!a) continue;
+      const d = (y * dst.width + x) * 4;
+      for (let c = 0; c < 3; c++) dst.data[d + c] = Math.round(top.data[s + c] * a + dst.data[d + c] * (1 - a));
+      dst.data[d + 3] = Math.max(dst.data[d + 3], top.data[s + 3]);
+    }
+  }
+}
+
 const biomeOut = path.join(out, "biomes");
 fs.mkdirSync(biomeOut, { recursive: true });
 const biomeMissing = [];
@@ -169,7 +200,18 @@ for (const b of official.biomes) {
     biomeMissing.push(key);
     continue;
   }
-  fs.copyFileSync(src, path.join(biomeOut, `${key}.png`));
+  // Like the battle field (ArenaBase): background, then the player platform ({key}_a) and the enemy
+  // platform ({key}_b), both full-size layers drawn at the top-left. Random enemy-side props are left out.
+  const img = readPng(src);
+  for (const layer of [`${key}_a`, `${key}_b`]) {
+    const top = layerImage(path.join(assets, "arenas", layer));
+    if (top) blend(img, top);
+  }
+  // Crop to the platform layer height: below it the game shows the battle menu, not the field
+  const h = Math.min(img.height, layerImage(path.join(assets, "arenas", `${key}_a`))?.height ?? img.height);
+  const cropped = new PNG({ width: img.width, height: h });
+  img.data.copy(cropped.data, 0, 0, img.width * h * 4);
+  write(cropped, path.join(biomeOut, `${key}.png`));
   biomes++;
 }
 console.log(
