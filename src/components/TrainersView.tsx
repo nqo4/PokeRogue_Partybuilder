@@ -1,4 +1,5 @@
 // 트레이너 도감: 악의 조직별(간부·보스), 리그별(사천왕·챔피언), 바이옴별 관장
+import { imageUrl } from "../lib/assets";
 import { useEffect, useMemo, useState } from "react";
 import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
@@ -118,7 +119,7 @@ export function TrainersView({ dex, focus }: { dex: Dex; focus?: { type: string;
       {t.sprite && (
         <img
           className="trainer-pic"
-          src={`${import.meta.env.BASE_URL}images/trainers/${t.sprite}.png`}
+          src={imageUrl(`trainers/${t.sprite}.png`)}
           alt=""
           loading="lazy"
           onError={(e) => (e.currentTarget.style.visibility = "hidden")}

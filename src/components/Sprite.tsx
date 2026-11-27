@@ -1,3 +1,4 @@
+import { imageUrl } from "../lib/assets";
 import { createContext, useContext, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DexSpecies } from "../lib/dex";
@@ -58,14 +59,15 @@ export function Sprite({ species, size = 48, warning, shiny }: Props) {
     >
       <img
         key={shiny ?? 0}
-        src={`${import.meta.env.BASE_URL}images/${shiny ? `shiny/${species.img}_${shiny}` : species.img}.png`}
+        src={imageUrl(shiny ? `shiny/${species.img}_${shiny}.png` : `${species.img}.png`)}
         alt={shiny ? `${species.name} (${shiny}럭 이로치)` : species.name}
         loading="lazy"
         onError={(e) => {
           // 이로치 이미지가 없으면 기본 색으로, 그것도 없으면 숨긴다
           const img = e.currentTarget;
-          const base = `${import.meta.env.BASE_URL}images/${species.img}.png`;
-          if (shiny && !img.src.endsWith(base)) img.src = base;
+          const base = imageUrl(`${species.img}.png`);
+          // compare by path: img.src is absolute while base may be relative ("./images/...")
+          if (shiny && !img.src.includes(`/images/${species.img}.png`)) img.src = base;
           else img.style.visibility = "hidden";
         }}
       />

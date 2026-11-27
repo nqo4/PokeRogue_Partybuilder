@@ -1,8 +1,9 @@
 // 바이옴 지도: 공식 데이터의 연결(links)로 화살표를 그린다. 칸을 누르면 그 바이옴을 고른다.
 // 선은 칸을 가로지르지 않도록 꺾인 길(ROUTES)로 그린다. 길이 정해지지 않은 연결은 곧은 선으로 그린다.
+import { imageUrl } from "../lib/assets";
 import type { Official } from "../lib/official";
 
-const biomeImage = (key: string) => `${import.meta.env.BASE_URL}images/biomes/${key.toLowerCase()}.png`;
+const biomeImage = (key: string) => imageUrl(`biomes/${key.toLowerCase()}.png`);
 
 /** 칸 가운데 좌표. 커뮤니티 지도와 같은 배치 */
 const POS: Record<string, [number, number]> = {

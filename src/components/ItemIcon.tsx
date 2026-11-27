@@ -1,4 +1,5 @@
 // 게임 아이템 그림 (스프라이트 시트 public/images/items.png 의 한 칸). 그림이 없으면 아무것도 그리지 않는다
+import { imageUrl } from "../lib/assets";
 import { Fragment } from "react";
 import { useOfficial } from "./OfficialContext";
 
@@ -16,7 +17,7 @@ export function ItemIcon({ item, size = 24 }: { item: string; size?: number }) {
           top: sp.oy * k,
           width: sp.w * k,
           height: sp.h * k,
-          backgroundImage: `url(${import.meta.env.BASE_URL}images/items.png)`,
+          backgroundImage: `url(${imageUrl("items.png")})`,
           backgroundSize: `${atlas.w * k}px ${atlas.h * k}px`,
           backgroundPosition: `${-sp.x * k}px ${-sp.y * k}px`,
         }}

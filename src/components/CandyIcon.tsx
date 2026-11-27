@@ -1,5 +1,6 @@
 // 스타터 사탕 그림: 게임처럼 바탕(candy)과 덧그림(candy_overlay)을 포켓몬별 두 색으로 물들여 겹친다.
 // 그림의 명암은 남기고 색만 입히려고 배경색과 그림을 곱하기로 섞고, 같은 그림을 마스크로 써서 모양 밖은 자른다.
+import { imageUrl } from "../lib/assets";
 import type { CSSProperties } from "react";
 import { useOfficial } from "./OfficialContext";
 
@@ -13,7 +14,7 @@ export function CandyIcon({ speciesId, size = 20 }: { speciesId: number; size?: 
     const sp = d.itemSprites![key];
     if (!sp) return null;
     const k = size / sp.sw;
-    const url = `url(${import.meta.env.BASE_URL}images/items.png)`;
+    const url = `url(${imageUrl("items.png")})`;
     const size2 = `${atlas.w * k}px ${atlas.h * k}px`;
     const pos = `${-sp.x * k}px ${-sp.y * k}px`;
     return {

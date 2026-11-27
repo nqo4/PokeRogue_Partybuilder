@@ -1,5 +1,6 @@
 // 포켓몬(형태) 상세 화면. 목록 위에 겹쳐 띄워서, 닫으면 목록의 필터·스크롤이 그대로 남는다.
 // 진화형·메가 등 어떤 형태든 열 수 있고, 세이브가 있으면 그 계열 스타터의 해금 상태를 함께 보여준다.
+import { imageUrl } from "../lib/assets";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { typeStyle } from "../lib/color";
@@ -332,7 +333,7 @@ function RibbonPanel({ family, dex, owned, hasSave }: { family: DexSpecies[]; de
           const note = def.key === "classic" && earned && owned && owned.classicWins > 0 ? ` · 클래식 클리어 ${owned.classicWins}회` : "";
           return (
             <li key={def.key} className={hasSave && !earned ? "ribbon-missing" : ""} title={`${def.name}${state && ` — ${state}`}${note}`}>
-              <img src={`${import.meta.env.BASE_URL}images/ribbons/${def.icon}.png`} alt="" width={32} height={32} loading="lazy" />
+              <img src={imageUrl(`ribbons/${def.icon}.png`)} alt="" width={32} height={32} loading="lazy" />
               <span>{def.name}</span>
             </li>
           );
