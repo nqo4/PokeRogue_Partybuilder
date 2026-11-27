@@ -469,10 +469,10 @@ tr.current > td { background: var(--hover); }
 .biome-detail h2 { margin: 0 0 8px; }
 .biome-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .next-biome { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
-.biome-thumb { width: 58px; height: 24px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); image-rendering: pixelated; }
+.biome-thumb { width: 48px; height: 27px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); image-rendering: pixelated; }
 /* Card opened from a biome's gym leader link */
 .trainer-card.focused { box-shadow: 0 0 0 3px var(--accent); transition: box-shadow 0.3s; }
-.biome-bg { width: 218px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); image-rendering: pixelated; }
+.biome-bg { width: 160px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); image-rendering: pixelated; }
 .biome-detail h3 { margin: 14px 0 6px; }
 .pool-row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .pool-tier { display: flex; flex-direction: column; }

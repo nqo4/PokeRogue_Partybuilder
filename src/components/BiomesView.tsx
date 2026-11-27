@@ -1,4 +1,5 @@
 // 바이옴 안내: 다음 바이옴, 날씨, 출현 포켓몬(등급별 확률), 트레이너·관장
+import { imageUrl } from "../lib/assets";
 import { useState } from "react";
 import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
@@ -15,7 +16,8 @@ const WEATHER_KO: Record<string, string> = {
 const pct = (x: number) => (x >= 0.1 ? `${(x * 100).toFixed(0)}%` : `${(x * 100).toFixed(1)}%`);
 
 /** Biome background (pokerogue-assets images/arenas/{key}_bg.png) */
-export const biomeImage = (key: string) => `${import.meta.env.BASE_URL}images/biomes/${key.toLowerCase()}.png`;
+/** Biome with its battle platforms and props (images/biomes/{key}_field.png) */
+export const biomeImage = (key: string) => imageUrl(`biomes/${key.toLowerCase()}_field.png`);
 
 export function BiomesView({
   dex,

@@ -200,18 +200,18 @@ for (const b of official.biomes) {
     biomeMissing.push(key);
     continue;
   }
-  // Like the battle field (ArenaBase): background, then the player platform ({key}_a) and the enemy
-  // platform ({key}_b), both full-size layers drawn at the top-left. Random enemy-side props are left out.
-  const img = readPng(src);
-  for (const layer of [`${key}_a`, `${key}_b`]) {
+  // Plain background (map cards) and a battle-field version (biome info, next-biome pictures).
+  // Field: like ArenaBase, the player platform ({key}_a), the enemy platform ({key}_b) and the enemy-side
+  // props ({key}_b_1..3) are full-size layers drawn at the top-left. The game shows a random subset of the
+  // props each battle; here all of them are shown as one fixed example.
+  const bg = readPng(src);
+  write(bg, path.join(biomeOut, `${key}.png`));
+  const field = readPng(src);
+  for (const layer of [`${key}_a`, `${key}_b`, `${key}_b_1`, `${key}_b_2`, `${key}_b_3`]) {
     const top = layerImage(path.join(assets, "arenas", layer));
-    if (top) blend(img, top);
+    if (top) blend(field, top);
   }
-  // Crop to the platform layer height: below it the game shows the battle menu, not the field
-  const h = Math.min(img.height, layerImage(path.join(assets, "arenas", `${key}_a`))?.height ?? img.height);
-  const cropped = new PNG({ width: img.width, height: h });
-  img.data.copy(cropped.data, 0, 0, img.width * h * 4);
-  write(cropped, path.join(biomeOut, `${key}.png`));
+  write(field, path.join(biomeOut, `${key}_field.png`));
   biomes++;
 }
 console.log(
