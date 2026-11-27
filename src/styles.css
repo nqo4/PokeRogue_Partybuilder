@@ -269,6 +269,7 @@ table.family th.num, table.family td.num { text-align: right; }
 .atk-kind { margin-left: 4px; padding: 0 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: var(--hover); }
 .atk-kind.phys { color: var(--c-orange); }
 .atk-kind.spec { color: var(--c-blue); }
+.atk-kind.hybrid { color: var(--c-purple, #9b6bd6); }
 
 /* ── 상세 모달 */
 .modal-backdrop {

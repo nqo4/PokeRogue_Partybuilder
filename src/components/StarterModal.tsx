@@ -19,6 +19,16 @@ import { CandyIcon } from "./CandyIcon";
 import { friendshipCap } from "../lib/rules";
 import { adviseNature, natureCaption } from "../lib/natureAdvice";
 import { ribbonStates } from "../lib/ribbons";
+import { speciesOffenseKind } from "../lib/classic/candidate";
+import { resolveConfig, type ResolvedConfig } from "../lib/classic/config";
+
+/** Recommender config per dex (name → fid lookups are built once) */
+const configCache = new WeakMap<Dex, ResolvedConfig>();
+const configFor = (dex: Dex) => {
+  let c = configCache.get(dex);
+  if (!c) configCache.set(dex, (c = resolveConfig(dex)));
+  return c;
+};
 
 export const STAT_NAMES = ["HP", "공격", "방어", "특공", "특방", "스피드"];
 export const STATUS_LABEL: Record<FormStatus, string> = { caught: "잡음", seen: "발견만", unseen: "미발견" };
@@ -72,7 +82,8 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
   const myEvo = howToGet(species, dex, official);
   const baseTypes = (owned?.dex ?? family.find((f) => f.starter) ?? species).types.join(",");
   const myStatus = status?.[species.idx];
-  const [, atk, , spa] = species.stats;
+  // Same physical / special rule as the party recommender (stats, then strong STAB moves when they are close)
+  const kind = speciesOffenseKind(species, family, dex, configFor(dex));
   const isStarterForm = owned?.dex.idx === species.idx;
   // 특성 칸 해금 여부는 계열 공통 (스타터 기준)
   const slots: [string, number | null, boolean | undefined][] = [
@@ -108,7 +119,9 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
             )}
             <div>
               {species.types.map(typeBadge)}
-              <span className={`atk-kind ${atk >= spa ? "phys" : "spec"}`}>{atk >= spa ? "물리형" : "특수형"}</span>
+              <span className={`atk-kind ${kind.hybrid ? "hybrid" : kind.offenseStat === "atk" ? "phys" : "spec"}`} title={kind.note ?? undefined}>
+                {kind.hybrid ? "물리·특수 겸용" : kind.offenseStat === "atk" ? "물리형" : "특수형"}
+              </span>
               {/* 잡지 못한 형태도 이로치 색을 볼 수 있다 (보유 표시는 세이브 기준) */}
               <span className="modal-shiny">
                 <ShinyTiers
