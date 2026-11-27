@@ -152,7 +152,10 @@ function abilitySourceBlocks(): Map<number, string> {
   const re = /new AbBuilder\(AbilityId\.(\w+)/g;
   const hits = [...src.matchAll(re)];
   hits.forEach((m, i) => {
-    const end = i + 1 < hits.length ? hits[i + 1].index : src.length;
+    // A builder chain ends at its .build() (the last one would otherwise run into the helper definitions below)
+    const next = i + 1 < hits.length ? hits[i + 1].index : src.length;
+    const build = src.indexOf(".build()", m.index);
+    const end = build >= 0 && build < next ? build : next;
     out.set(AbilityId[m[1] as keyof typeof AbilityId], src.slice(m.index, end));
   });
   return out;
