@@ -468,7 +468,7 @@ tr.current > td { background: var(--hover); }
 .biome-list button.active { background: var(--accent); color: var(--on-accent); }
 .biome-detail h2 { margin: 0 0 8px; }
 .biome-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.biome-bg { width: 160px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); image-rendering: pixelated; }
+.biome-bg { width: 218px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); image-rendering: pixelated; }
 .biome-detail h3 { margin: 14px 0 6px; }
 .pool-row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .pool-tier { display: flex; flex-direction: column; }
@@ -572,7 +572,8 @@ tr.current > td { background: var(--hover); }
 :root:not([data-theme="dark"]) .nature-tip-caption { color: #f0c94a; }
 /* 추천 성격: 칸 강조 (보유 여부와 상관없이), 보유 중 차선책: 글자만 은은하게 */
 .nature-grid td.best { box-shadow: inset 0 0 0 2px var(--c-gold); background: color-mix(in srgb, var(--c-gold) 22%, var(--surface)); opacity: 1; }
-.nature-grid td.best.off { color: var(--text); }
+/* Recommended but not unlocked: dashed outline, no fill, faded text so it does not look owned */
+.nature-grid td.best.off { box-shadow: none; outline: 2px dashed color-mix(in srgb, var(--c-gold) 70%, transparent); outline-offset: -3px; background: none; color: var(--muted); font-weight: 400; opacity: 0.7; }
 .nature-grid td.fallback { color: var(--c-gold); text-shadow: 0 0 6px color-mix(in srgb, var(--c-gold) 55%, transparent); }
 .nature-legend { margin: 6px 0 0; }
 .nature-legend .legend-best { padding: 0 6px; border-radius: 4px; box-shadow: inset 0 0 0 2px var(--c-gold); background: color-mix(in srgb, var(--c-gold) 22%, var(--surface)); color: var(--text); font-weight: 700; }

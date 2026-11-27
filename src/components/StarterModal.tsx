@@ -412,8 +412,13 @@ function NatureGrid({ unlocked, stats }: { unlocked: number[]; stats: readonly n
       )}
     <p className="nature-legend small muted">
       <span className="legend-best">추천 성격</span>
-      <br />
-      <span className="legend-fallback">차선책</span>
+      {/* The fallback is only marked when no recommended nature is unlocked */}
+      {advice.fallback != null && (
+        <>
+          <br />
+          <span className="legend-fallback">차선책</span>
+        </>
+      )}
     </p>
     </>
   );
