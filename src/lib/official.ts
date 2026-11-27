@@ -241,7 +241,7 @@ export class Official {
   }
 }
 
-export async function fetchOfficial(url = `${import.meta.env.BASE_URL}data/official.json`): Promise<Official | null> {
+export async function fetchOfficial(url = `${import.meta.env.BASE_URL}data/official.json?v=${__DATA_VERSION__}`): Promise<Official | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;

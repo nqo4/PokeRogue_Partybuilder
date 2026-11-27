@@ -245,7 +245,7 @@ export class Dex {
   }
 }
 
-export async function fetchDex(url = `${import.meta.env.BASE_URL}data/dex.json`): Promise<Dex> {
+export async function fetchDex(url = `${import.meta.env.BASE_URL}data/dex.json?v=${__DATA_VERSION__}`): Promise<Dex> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`도감 데이터를 불러오지 못했습니다 (${res.status})`);
   return new Dex((await res.json()) as DexData);
