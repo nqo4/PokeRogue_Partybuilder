@@ -189,6 +189,10 @@ test("export party builder data", async () => {
     // 스타터 사탕: 바탕(candy)과 덧그림(candy_overlay)을 포켓몬별 두 색으로 물들여 그린다
     "candy",
     "candy_overlay",
+    // TM icons per move type (modifier-type.ts: tm_{type})
+    ...Object.keys(PokemonType)
+      .filter((k) => Number.isNaN(Number(k)) && (PokemonType as unknown as Record<string, number>)[k] >= 0 && (PokemonType as unknown as Record<string, number>)[k] <= 17)
+      .map((k) => `tm_${k.toLowerCase()}`),
   ]);
   // 포켓몬별 사탕 색 [바탕, 덧그림] (에셋 저장소의 starter-colors.json, 자동 생성 파일)
   let starterColors: Record<string, [string, string]> = {};
@@ -218,7 +222,7 @@ test("export party builder data", async () => {
       itemSprites[key] = {
         x: fr.frame.x, y: fr.frame.y, w: fr.frame.w, h: fr.frame.h,
         ox: fr.spriteSourceSize.x, oy: fr.spriteSourceSize.y, sw: fr.sourceSize.w, sh: fr.sourceSize.h,
-        name: evoName || formName || key,
+        name: evoName || formName || (key.startsWith("tm_") ? "기술머신" : key),
         tier: itemTier(evoNo, formNo),
       };
     }

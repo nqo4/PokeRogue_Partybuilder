@@ -84,7 +84,15 @@ export interface MoveInfo {
   priority: number;
   procs: MoveProc[];
   tags: number[];
+  /** Shop tier of the move's TM: 0 common, 1 great, 2 ultra. Absent when there is no TM */
+  tm?: 0 | 1 | 2;
 }
+
+/** Type keys in game order (PokemonType), e.g. for item keys like tm_fire */
+export const TYPE_KEYS = [
+  "normal", "fighting", "flying", "poison", "ground", "rock", "bug", "ghost", "steel",
+  "fire", "water", "grass", "electric", "psychic", "ice", "dragon", "dark", "fairy",
+] as const;
 
 /** 태그 번호 (dex.json tagNames) 중 앱이 쓰는 것 */
 export const TAG = {

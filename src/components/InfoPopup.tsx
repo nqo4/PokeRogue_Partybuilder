@@ -1,7 +1,8 @@
 // 특성·기술 이름을 누르면 설명 창을 띄운다.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { typeStyle } from "../lib/color";
-import type { Dex } from "../lib/dex";
+import { TYPE_KEYS, type Dex } from "../lib/dex";
+import { ItemIcon } from "./ItemIcon";
 
 interface Open {
   fid: number;
@@ -61,6 +62,9 @@ export function InfoProvider({ dex, children }: { dex: Dex; children: ReactNode 
   );
 }
 
+const TM_TIER_NAMES = ["노말", "슈퍼", "하이퍼"] as const;
+const TM_TIER_KEYS = ["common", "great", "ultra"] as const;
+
 export function InfoBody({ dex, fid }: { dex: Dex; fid: number }) {
   const d = dex.data;
   const move = dex.isMove(fid) ? dex.move(fid) : undefined;
@@ -93,6 +97,12 @@ export function InfoBody({ dex, fid }: { dex: Dex; fid: number }) {
           {dex.name(move.type)}
         </span>
         <span className={`cat cat-${move.cat}`}>{CATEGORY[move.cat]}</span>
+        {move.tm != null && (
+          <span className={`tm-tier item-name tier-${TM_TIER_KEYS[move.tm]}`} title="기술머신 상점 등급">
+            <ItemIcon item={`tm_${TYPE_KEYS[move.type]}`} size={24} />
+            {TM_TIER_NAMES[move.tm]}
+          </span>
+        )}
       </div>
       <dl className="move-stats">
         <div>

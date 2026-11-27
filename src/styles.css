@@ -723,6 +723,8 @@ tr.current > td { background: var(--hover); }
 .item-name.tier-ultra { color: #f8d038; }
 .item-name.tier-rogue { color: #db4343; }
 .item-name.tier-master { color: #e331c5; }
+/* TM shop tier next to a move's type and category */
+.tm-tier { display: inline-flex; align-items: center; gap: 2px; padding-right: 7px; font-size: 0.85rem; }
 
 /* 파티 추천: 캐리몬 */
 .carry-bar { margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--surface); }

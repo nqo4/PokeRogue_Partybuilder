@@ -361,7 +361,10 @@ test(
       names[fid] = m.name.replace(/( \((N|P)\))+$/, "");
       if (m.effect) descriptions[fid] = m.effect.replace(/( \((N|P)\))+$/, "");
       const { tags, procs } = moveTagsAndProcs(m, moveBlocks.get(m.id) ?? "");
+      const tm = (tmPoolTiers as Record<number, ModifierTier>)[m.id];
       moveInfo[fid] = {
+        // Shop tier of this move's TM (0 common, 1 great, 2 ultra), absent if there is no TM
+        ...(tm != null && tm <= ModifierTier.ULTRA ? { tm } : {}),
         type: m.type,
         cat: m.category,
         power: m.power,
