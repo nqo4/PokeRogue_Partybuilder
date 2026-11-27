@@ -357,10 +357,18 @@ describe("physical / special label (species detail)", () => {
 
   it("otherwise the higher stat, and the exception list stays mixed", () => {
     expect(kind("대짱이")).toBe("atk");
-    expect(kind("리자몽")).toBe("spa");
+    expect(kind("메가리자몽Y")).toBe("spa");
     expect(kind("거북왕")).toBe("spa"); // 83/85 even with Wave Crash
     expect(kind("덩쿠림보")).toBe("spa"); // 100/110
     expect(kind("원시그란돈")).toBe("atk");
     expect(kind("망나뇽")).toBe("hybrid");
+    expect(kind("킹드라")).toBe("hybrid");
+    expect(kind("루기아")).toBe("hybrid");
+  });
+
+  it("a base form is mixed when its megas play the other way", () => {
+    expect(kind("라이츄")).toBe("hybrid"); // Mega X physical, Mega Y special
+    expect(kind("리자몽")).toBe("hybrid"); // Mega X physical
+    expect(kind("메가라이츄X")).toBe("atk"); // a mega's own detail looks only at itself
   });
 });

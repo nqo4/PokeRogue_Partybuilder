@@ -131,6 +131,7 @@ const TAG_NAMES = [
   "질풍날개로 우선도 +1 (HP 가득)",
   "손가락흔들기로 나오지 않음", "조수로 나오지 않음", "잠꼬대로 나오지 않음", "흉내쟁이로 따라 할 수 없음",
   "따라하기로 따라 할 수 없음", "스케치 불가", "앵콜 불가", "지시 불가", "회복봉인에 막힘", "특성으로 타입이 바뀌지 않음",
+  "2턴에 걸쳐 공격",
 ];
 const T = Object.fromEntries(TAG_NAMES.map((n, i) => [n, i])) as Record<string, number>;
 
@@ -302,6 +303,8 @@ function moveTagsAndProcs(m: (typeof allMoves)[number], block: string): { tags: 
     [noAbilityTypeOverrideMoves, "특성으로 타입이 바뀌지 않음"],
   ];
   for (const [list, name] of lists) if (list.has(m.id)) tags.add(T[name]);
+  // Two-turn moves that charge first (Sky Attack, Skull Bash, Solar Beam, Fly...)
+  if (m.isChargingMove()) tags.add(T["2턴에 걸쳐 공격"]);
 
   // Status moves aimed at another Pokemon that Magic Bounce / Magic Coat cannot reflect
   const atOthers = ![

@@ -171,7 +171,8 @@ export interface OffenseKind {
 /**
  * Strength of the best attacking set in one category: the strongest STAB move (counted twice) plus the two
  * strongest moves of other types, each power × accuracy (×1.5 STAB, ×0.9 recoil), times the attacking stat,
- * ×1.15 with a sure setup move for that stat (Swords Dance, Nasty Plot, Dragon Dance, Shell Smash...).
+ * ×1.15 with a sure setup move for that stat (Swords Dance, Nasty Plot, Dragon Dance, Calm Mind...).
+ * Two-turn charging moves (Sky Attack, Skull Bash...) are left out.
  * `pool` is every move the form can learn (level-up, evolution, relearn, egg moves, TMs).
  */
 export function attackSetStrength(
@@ -182,7 +183,9 @@ export function attackSetStrength(
 ): number {
   const best = new Map<number, number>();
   for (const [fid, m] of pool) {
-    if (m.cat !== cat || m.power <= 0 || exclude.has(fid) || m.tags.includes(OHKO_TAG)) continue;
+    if (m.cat !== cat || m.power <= 0 || exclude.has(fid) || m.tags.includes(OHKO_TAG) || m.tags.includes(TAG.CHARGING)) {
+      continue;
+    }
     const recoil = m.tags.some((t) => t >= RECOIL_TAGS[0] && t <= RECOIL_TAGS[1]);
     const v = m.power * (m.acc > 0 ? m.acc / 100 : 1) * (form.types.includes(m.type) ? 1.5 : 1) * (recoil ? 0.9 : 1);
     if (v > (best.get(m.type) ?? 0)) best.set(m.type, v);
@@ -192,12 +195,17 @@ export function attackSetStrength(
   if (stab > 0) rest.splice(rest.indexOf(stab), 1);
   const sure = (c: number) => c === -1 || c >= 100;
   const off = cat === 0 ? SELF_ATK : SELF_SPA;
-  const setup = pool.some(
-    ([, m]) =>
-      m.cat === 2 &&
-      (m.procs.some(([c, e, s]) => sure(c) && s > 0 && ((e === off && s >= 2) || e === SELF_ALL)) ||
-        m.procs.filter(([c, e, s]) => sure(c) && s > 0 && (e === off || e === SELF_SPE)).length >= 2),
-  );
+  // Setup for this stat: +2 (Swords Dance, Nasty Plot), all stats, or +1 with another stat of the user
+  // (Dragon Dance, Calm Mind, Take Heart, Bulk Up, Quiver Dance)
+  const setup = pool.some(([, m]) => {
+    if (m.cat !== 2) return false;
+    const ups = m.procs.filter(([c, e, s]) => sure(c) && s > 0 && e <= SELF_STAT_MAX);
+    return (
+      m.procs.some(([c, e, s]) => sure(c) && s > 0 && e === SELF_ALL) ||
+      ups.some(([, e, s]) => e === off && s >= 2) ||
+      (ups.some(([, e]) => e === off) && ups.length >= 2)
+    );
+  });
   const stat = cat === 0 ? form.stats[1] : form.stats[3];
   return stat * (stab * 2 + (rest[0] ?? 0) + (rest[1] ?? 0)) * (setup ? 1.15 : 1);
 }
@@ -267,14 +275,18 @@ export function learnablePool(form: DexSpecies, family: DexSpecies[], dex: Dex):
     .filter((x): x is readonly [number, MoveInfo] => !!x[1] && !x[1].tags.includes(TAG.NOT_IMPLEMENTED));
 }
 
-/** offenseKind for one form in the species detail: only the form's own stats (megas have their own detail) */
+/**
+ * offenseKind for one form in the species detail. A base form also looks at its megas / form changes
+ * (Raichu: Mega X physical, Mega Y special → mixed); a mega's own detail looks only at itself.
+ */
 export function speciesOffenseKind(
   form: DexSpecies,
   family: DexSpecies[],
   dex: Dex,
   cfg: Parameters<typeof offenseKind>[3],
 ): OffenseKind {
-  return offenseKind(form, [], learnablePool(form, family, dex), cfg);
+  const specialForms = form.form === 0 ? family.filter((f) => f.id === form.id && f.form >= 1 && f.form <= 4) : [];
+  return offenseKind(form, specialForms, learnablePool(form, family, dex), cfg);
 }
 
 export class CandidateBuilder {
@@ -861,7 +873,8 @@ export class CandidateBuilder {
     const { cfg, dex } = this;
     const mainCat = offenseStat === "atk" ? 0 : 1;
     const noRecoil = abilities.some((a) => cfg.recoilImmuneAbilities.has(a));
-    const ok = (fid: number) => !cfg.movesetExclude.has(fid);
+    // Config exclusions plus every two-turn charging move (Sky Attack, Skull Bash, Bounce...)
+    const ok = (fid: number) => !cfg.movesetExclude.has(fid) && !this.dex.move(fid)?.tags.includes(TAG.CHARGING);
     const value = (m: MoveInfo) => {
       if (m.cat === 2 || m.power <= 0 || m.tags.includes(OHKO_TAG)) return 0;
       let v = m.power * (m.acc > 0 ? m.acc / 100 : 1) * (types.includes(m.type) ? 1.5 : 1) * (m.cat === mainCat ? 1 : hybrid ? 0.9 : 0.6);

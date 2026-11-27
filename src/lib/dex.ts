@@ -116,6 +116,8 @@ export const TAG = {
   BOSS_NO_EFFECT: 70,
   CONTACT: 72,
   NOT_IMPLEMENTED: 74,
+  /** Two-turn move that charges first (Sky Attack, Solar Beam, Fly...) */
+  CHARGING: 93,
 } as const;
 
 /** 게임의 타입 순서 (스타터 선택 화면의 타입 필터와 같다) */
