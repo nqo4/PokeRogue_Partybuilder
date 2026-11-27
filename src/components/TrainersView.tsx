@@ -1,5 +1,5 @@
 // 트레이너 도감: 악의 조직별(간부·보스), 리그별(사천왕·챔피언), 바이옴별 관장
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import {
@@ -23,11 +23,29 @@ function waveSlot(official: Official, key: string, i: number): string[] {
   return official.data.fixedWaves.find((w) => w.key === key)?.trainers[i] ?? [];
 }
 
-export function TrainersView({ dex }: { dex: Dex }) {
+export function TrainersView({ dex, focus }: { dex: Dex; focus?: { type: string; biome: number; at: number } | null }) {
   const official = useOfficial();
   const [section, setSection] = useState<Section>("evil");
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
+
+  // Opened from a biome's gym leader link: show the gym tab and scroll to that leader's card
+  useEffect(() => {
+    if (!focus) return;
+    setSection("gym");
+    setQuery("");
+    setType("");
+    const id = window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(
+        `.trainer-group[data-biome="${focus.biome}"] [data-trainer="${focus.type}"]`,
+      );
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      el.classList.add("focused");
+      window.setTimeout(() => el.classList.remove("focused"), 2000);
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [focus]);
 
   const typeBadge = (key: string | null) => {
     if (!key) return null;
@@ -96,7 +114,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
   };
 
   const card = (t: Trainer, extra?: string, note?: string | null, opts?: { ace?: boolean }) => (
-    <article key={t.type} className="trainer-card">
+    <article key={t.type} className="trainer-card" data-trainer={t.type}>
       {t.sprite && (
         <img
           className="trainer-pic"
@@ -223,7 +241,7 @@ export function TrainersView({ dex }: { dex: Dex }) {
       {section === "gym" && (
         <>
           {gymByBiome.map(({ biome, leaders }) => (
-            <div key={biome.id} className="trainer-group">
+            <div key={biome.id} className="trainer-group" data-biome={biome.id}>
               <h2>{biome.name}</h2>
               <div className="trainer-grid">{leaders.map((t) => card(t))}</div>
             </div>

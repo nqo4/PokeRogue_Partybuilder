@@ -4,7 +4,6 @@ import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import { BOSS_TIER_CHANCE, TIER_NAMES, TIME_NAMES, TYPE_KEY_KO, WILD_TIER_CHANCE, type Biome } from "../lib/official";
 import type { FormStatus } from "../lib/starters";
-import { evaluateBiome } from "../lib/route";
 import { Sprite } from "./Sprite";
 import { useOfficial } from "./OfficialContext";
 import { BiomeMap } from "./BiomeMap";
@@ -18,7 +17,16 @@ const pct = (x: number) => (x >= 0.1 ? `${(x * 100).toFixed(0)}%` : `${(x * 100)
 /** Biome background (pokerogue-assets images/arenas/{key}_bg.png) */
 export const biomeImage = (key: string) => `${import.meta.env.BASE_URL}images/biomes/${key.toLowerCase()}.png`;
 
-export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, FormStatus> }) {
+export function BiomesView({
+  dex,
+  status,
+  onOpenTrainer,
+}: {
+  dex: Dex;
+  status?: Record<number, FormStatus>;
+  /** Open the trainer page at this gym leader's card in the given biome */
+  onOpenTrainer?: (type: string, biome: number) => void;
+}) {
   const official = useOfficial();
   const [selected, setSelected] = useState<number | null>(null);
   const [view, setView] = useState<"info" | "map">("info");
@@ -26,7 +34,17 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
 
   const biomes = official.data.biomes;
   const cur = official.biomeById.get(selected ?? biomes[0].id)!;
-  const ev = evaluateBiome(cur, dex, official, status, null);
+  // Distinct species in this biome's wild and boss pools that are not caught yet
+  const uncaught = status
+    ? new Set(
+        cur.pokemon
+          .flatMap((p) => p.species.map((s) => s.id))
+          .filter((id) => {
+            const s = dex.byId(id);
+            return s && status[s.idx] !== "caught";
+          }),
+      ).size
+    : 0;
 
   const toggle = (
     <div className="filters">
@@ -80,7 +98,10 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
             cur.links.map((l, i) => (
               <span key={l.to}>
                 {i > 0 && " · "}
-                <button className="link-button" onClick={() => setSelected(l.to)}>
+                <button className="link-button next-biome" onClick={() => setSelected(l.to)}>
+                  {official.biomeById.get(l.to) && (
+                    <img className="biome-thumb" src={biomeImage(official.biomeById.get(l.to)!.key)} alt="" />
+                  )}
                   {official.biomeById.get(l.to)?.name ?? l.to}
                 </button>
                 {l.chance < 1 && <span className="muted small"> ({pct(l.chance)} 확률로 선택지에 등장)</span>}
@@ -99,12 +120,12 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
           {status && (
             <>
               {" · "}
-              <span className="label">못 잡은 포켓몬이 나올 확률</span> <b>{pct(ev.newChance)}</b>
+              <span className="label">해당 바이옴에서 못잡은 포켓몬 :</span> <b>{uncaught}마리</b>
             </>
           )}
         </p>
 
-        <BiomeTrainers biome={cur} dex={dex} />
+        <BiomeTrainers biome={cur} dex={dex} onOpenTrainer={onOpenTrainer} />
 
         <h3>야생 포켓몬</h3>
         <PoolTable biome={cur} dex={dex} status={status} boss={false} />
@@ -120,7 +141,15 @@ export function BiomesView({ dex, status }: { dex: Dex; status?: Record<number, 
   );
 }
 
-function BiomeTrainers({ biome, dex }: { biome: Biome; dex: Dex }) {
+function BiomeTrainers({
+  biome,
+  dex,
+  onOpenTrainer,
+}: {
+  biome: Biome;
+  dex: Dex;
+  onOpenTrainer?: (type: string, biome: number) => void;
+}) {
   const official = useOfficial()!;
   const typeBadge = (key: string | null) => {
     const fid = dex.fid("type", TYPE_KEY_KO[key ?? ""] ?? "");
@@ -141,7 +170,14 @@ function BiomeTrainers({ biome, dex }: { biome: Biome; dex: Dex }) {
             return (
               <span key={t.type}>
                 {i > 0 && " · "}
-                {t.name} {typeBadge(tr?.specialty ?? null)}
+                {onOpenTrainer ? (
+                  <button className="link-button" onClick={() => onOpenTrainer(t.type, biome.id)} title="트레이너 도감에서 보기">
+                    {t.name}
+                  </button>
+                ) : (
+                  t.name
+                )}{" "}
+                {typeBadge(tr?.specialty ?? null)}
               </span>
             );
           })}

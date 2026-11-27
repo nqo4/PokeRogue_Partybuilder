@@ -85,6 +85,8 @@ export default function App() {
   const [nav, setNav] = useState<NavState>(readNav);
   /** 파티 만들기 → 파티 추천으로 넘긴 중심 포켓몬 */
   const [partyFocus, setPartyFocus] = useState<{ picks: PartyPick[]; criterion: ClearCriterion } | null>(null);
+  /** 바이옴 안내 → 트레이너 도감으로 넘긴 관장 */
+  const [trainerFocus, setTrainerFocus] = useState<{ type: string; biome: number; at: number } | null>(null);
 
   useEffect(() => {
     fetchDex().then(setDex, (e: Error) => setError(e.message));
@@ -254,10 +256,17 @@ export default function App() {
                 <RotationView dex={dex} owned={ownedIds} />
               </div>
               <div hidden={page !== "trainers"}>
-                <TrainersView dex={dex} />
+                <TrainersView dex={dex} focus={trainerFocus} />
               </div>
               <div hidden={page !== "biomes"}>
-                <BiomesView dex={dex} status={summary?.speciesStatus} />
+                <BiomesView
+                  dex={dex}
+                  status={summary?.speciesStatus}
+                  onOpenTrainer={(type, biome) => {
+                    setTrainerFocus({ type, biome, at: Date.now() });
+                    go({ page: "trainers", detail: null });
+                  }}
+                />
               </div>
               <div hidden={page !== "guide"}>
                 <Guide />
