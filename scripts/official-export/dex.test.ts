@@ -56,10 +56,30 @@ import {
   StatusEffectAttr,
   TrapAttr,
   AddBattlerTagAttr,
+  BypassRedirectAttr,
+  CurseAttr,
+  JawLockAttr,
+  LeechSeedAttr,
+  PartingShotAttr,
+  VariablePowerAttr,
 } from "#moves/move";
 import {
+  healBlockedMoves,
+  invalidAssistMoves,
+  invalidCopycatMoves,
+  invalidEncoreMoves,
+  invalidInstructMoves,
+  invalidMetronomeMoves,
+  invalidMirrorMoveMoves,
+  invalidSketchMoves,
+  invalidSleepTalkMoves,
+  noAbilityTypeOverrideMoves,
+} from "#moves/invalid-moves";
+import {
+  DoubleBattleChanceAbAttr,
   IntimidateImmunityAbAttr,
   MoveAbilityBypassAbAttr,
+  PostDamageForceSwitchAbAttr,
   PostDefendWeatherChangeAbAttr,
   PostSummonWeatherChangeAbAttr,
   TypeImmunityAbAttr,
@@ -105,6 +125,12 @@ const TAG_NAMES = [
   "사용자 교체 불가", "상대 교체 불가", "전기 면역", "불꽃 면역", "땅 면역", "물 면역", "위협 면역", "비 시너지", "비 생성",
   "모래 시너지", "모래 생성", "눈 시너지", "햇빛 시너지", "햇빛 생성", "일격 기술", "보스전에서 수정됨", "보스에게 효과 없음",
   "더블배틀코롱 특성", "접촉 기술", "부분 구현됨", "미구현",
+  // 75~ (added later; earlier numbers are fixed because the app uses them)
+  "복사 불가", "틀깨기류에 무시됨", "쓰러져도 발동",
+  "테크니션으로 강화", "하늘의은총으로 확률 2배", "스킬링크로 최대 횟수", "짓궂은마음으로 우선도 +1",
+  "질풍날개로 우선도 +1 (HP 가득)",
+  "손가락흔들기로 나오지 않음", "조수로 나오지 않음", "잠꼬대로 나오지 않음", "흉내쟁이로 따라 할 수 없음",
+  "따라하기로 따라 할 수 없음", "스케치 불가", "앵콜 불가", "지시 불가", "회복봉인에 막힘", "특성으로 타입이 바뀌지 않음",
 ];
 const T = Object.fromEntries(TAG_NAMES.map((n, i) => [n, i])) as Record<string, number>;
 
@@ -146,7 +172,12 @@ function abilityTags(a: (typeof allAbilities)[number], block: string): number[] 
     if (attr instanceof UngroundedAbAttr) tags.add(T["땅 면역"]);
     if (attr instanceof IntimidateImmunityAbAttr) tags.add(T["위협 면역"]);
     if (attr instanceof MoveAbilityBypassAbAttr) tags.add(T["특성 무시"]);
+    if (attr instanceof DoubleBattleChanceAbAttr) tags.add(T["더블배틀코롱 특성"]);
+    // Wimp Out / Emergency Exit skip switching after a Sheer Force-boosted hit
+    if (attr instanceof PostDamageForceSwitchAbAttr) tags.add(T["우격다짐의 영향을 받음"]);
   }
+  // Abilities turned off after a Sheer Force-boosted hit (private condition in init-abilities.ts)
+  if (/\bsheerForceHitDisableAbCondition\b/.test(block)) tags.add(T["우격다짐의 영향을 받음"]);
   const setters = attrs
     .filter((x) => x instanceof PostSummonWeatherChangeAbAttr || x instanceof PostDefendWeatherChangeAbAttr)
     .map((x) => (x as unknown as { weatherType: WeatherType }).weatherType);
@@ -165,6 +196,9 @@ function abilityTags(a: (typeof allAbilities)[number], block: string): number[] 
   }
   if (!a.suppressable) tags.add(T["무효화 불가"]);
   if (!a.replaceable) tags.add(T["교체 불가"]);
+  if (!a.copiable) tags.add(T["복사 불가"]);
+  if (a.ignorable) tags.add(T["틀깨기류에 무시됨"]);
+  if (a.bypassFaint) tags.add(T["쓰러져도 발동"]);
   if (a.partial) tags.add(T["부분 구현됨"]);
   if (a.unimplemented) tags.add(T["미구현"]);
   return [...tags].sort((x, y) => x - y);
@@ -231,6 +265,48 @@ function moveTagsAndProcs(m: (typeof allMoves)[number], block: string): { tags: 
   if (has(MoveFlags.IGNORE_PROTECT) && !selfOrSide) tags.add(T["방어/지키기 무시"]);
   if (has(MoveFlags.MAKES_CONTACT)) tags.add(T["접촉 기술"]);
 
+  // Moves whose effect is changed by an ability (conditions from init-abilities.ts)
+  const variablePower = attrs.some((x) => x instanceof VariablePowerAttr);
+  if (m.category !== MoveCategory.STATUS && m.power > 0 && m.power <= 60 && !variablePower) {
+    tags.add(T["테크니션으로 강화"]); // Technician: power <= 60 (variable-power moves depend on the battle)
+  }
+  if (m.chance >= 1 && m.chance < 100) tags.add(T["하늘의은총으로 확률 2배"]); // Serene Grace doubles the chance
+  if (m.category === MoveCategory.STATUS) tags.add(T["짓궂은마음으로 우선도 +1"]); // Prankster: status moves
+  if (m.type === PokemonType.FLYING) tags.add(T["질풍날개로 우선도 +1 (HP 가득)"]); // Gale Wings: full HP, Flying
+  // Skill Link: 2-5 hit moves always hit 5 times, and moves that check every hit skip the later checks
+  if (
+    has(MoveFlags.CHECK_ALL_HITS) ||
+    attrs.some(
+      (x) =>
+        x instanceof MultiHitAttr &&
+        (x as unknown as { intrinsicMultiHitType: MultiHitType }).intrinsicMultiHitType === MultiHitType.TWO_TO_FIVE,
+    )
+  ) {
+    tags.add(T["스킬링크로 최대 횟수"]);
+  }
+
+  // Moves other moves cannot call or copy (invalid-moves.ts)
+  const lists: [ReadonlySet<MoveId>, string][] = [
+    [invalidMetronomeMoves, "손가락흔들기로 나오지 않음"],
+    [invalidAssistMoves, "조수로 나오지 않음"],
+    [invalidSleepTalkMoves, "잠꼬대로 나오지 않음"],
+    [invalidCopycatMoves, "흉내쟁이로 따라 할 수 없음"],
+    [invalidMirrorMoveMoves, "따라하기로 따라 할 수 없음"],
+    [invalidSketchMoves, "스케치 불가"],
+    [invalidEncoreMoves, "앵콜 불가"],
+    [invalidInstructMoves, "지시 불가"],
+    [healBlockedMoves, "회복봉인에 막힘"],
+    [noAbilityTypeOverrideMoves, "특성으로 타입이 바뀌지 않음"],
+  ];
+  for (const [list, name] of lists) if (list.has(m.id)) tags.add(T[name]);
+
+  // Status moves aimed at another Pokemon that Magic Bounce / Magic Coat cannot reflect
+  const atOthers = ![
+    MoveTarget.USER, MoveTarget.USER_SIDE, MoveTarget.USER_AND_ALLIES, MoveTarget.USER_OR_NEAR_ALLY,
+    MoveTarget.NEAR_ALLY, MoveTarget.ALLY, MoveTarget.PARTY, MoveTarget.BOTH_SIDES, MoveTarget.ENEMY_SIDE,
+  ].includes(m.moveTarget);
+  if (m.category === MoveCategory.STATUS && atOthers && !has(MoveFlags.REFLECTABLE)) tags.add(T["반사 불가"]);
+
   for (const attr of attrs) {
     if (attr instanceof HighCritAttr) tags.add(T["급소율 높음"]);
     if (attr instanceof CritOnlyAttr) tags.add(T["급소 확정"]);
@@ -283,11 +359,20 @@ function moveTagsAndProcs(m: (typeof allMoves)[number], block: string): { tags: 
     if (attr instanceof ThunderAccuracyAttr || attr instanceof StormAccuracyAttr) {
       tags.add(T["비 오는 날씨에서 항상 명중"]);
     }
+    if (attr instanceof BypassRedirectAttr) tags.add(T["재지정 불가"]);
+    if (attr instanceof LeechSeedAttr) tags.add(T["풀 타입에 씨뿌리기 불가"]);
+    if (attr instanceof PartingShotAttr) tags.add(T["사용자 교체"]);
+    if (attr instanceof CurseAttr) tags.add(T["HP 50% 소모"]); // Ghost-type user pays half its HP
+    if (attr instanceof JawLockAttr) {
+      tags.add(T["사용자 교체 불가"]);
+      tags.add(T["상대 교체 불가"]);
+    }
     if (attr instanceof AddBattlerTagAttr && !(attr instanceof TrapAttr)) {
       const tag = (attr as unknown as { tagType: BattlerTagType }).tagType;
       if (tag === BattlerTagType.FRENZY) tags.add(T["2~3턴 동안 반복"]);
       if (tag === BattlerTagType.CRIT_BOOST) tags.add(T["사용자 급소율 +2"]);
       if (tag === BattlerTagType.TRAPPED) tags.add(attr.selfTarget ? T["사용자 교체 불가"] : T["상대 교체 불가"]);
+      if (tag === BattlerTagType.OCTOLOCK) tags.add(T["상대 교체 불가"]);
     }
 
     // Effects (procs)
