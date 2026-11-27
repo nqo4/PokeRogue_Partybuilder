@@ -246,21 +246,14 @@ describe.skipIf(!savePath)("물리·특수 역할", () => {
     }
   });
 
-  it("능력치가 비슷해도 센 자속기가 한쪽에만 있으면 그쪽만 (뮤는 특수, 덩쿠림보는 물리)", () => {
-    const mew = rec.candidates.find((c) => c.form.name === "뮤");
-    if (mew) {
-      expect(mew.hybrid).toBe(false);
-      expect(mew.offenseStat).toBe("spa");
+  it("물리·특수: 높은 능력치 쪽, 같으면 기술 구성이 강한 쪽 (뮤 특수, 거북왕 특수, 덩쿠림보 특수)", () => {
+    const pick = (n: string) => rec.candidates.find((c) => c.form.name === n);
+    for (const [n, stat] of [["뮤", "spa"], ["거북왕", "spa"], ["덩쿠림보", "spa"]] as const) {
+      const c = pick(n);
+      if (!c) continue;
+      expect(c.hybrid, n).toBe(false);
+      expect(c.offenseStat, n).toBe(stat);
     }
-    // Tangrowth 100/110 leans special on stats, but only has strong physical STAB (Power Whip)
-    const tangrowth = rec.candidates.find((c) => c.form.name === "덩쿠림보");
-    if (tangrowth) {
-      expect(tangrowth.hybrid).toBe(false);
-      expect(tangrowth.offenseStat).toBe("atk");
-    }
-    // Strong STAB on both sides keeps the stat-based hybrid (Blastoise: Wave Crash / Hydro Pump)
-    const blastoise = rec.candidates.find((c) => c.form.name === "거북왕");
-    if (blastoise) expect(blastoise.hybrid).toBe(true);
   });
 
   it("겸용이 아니면 주 공격 분류의 공격 역할만 점수가 있다", () => {
@@ -357,15 +350,17 @@ describe("physical / special label (species detail)", () => {
     return k.hybrid ? "hybrid" : k.offenseStat;
   };
 
-  it("settles 100/100 forms by their strong STAB moves", () => {
-    expect(kind("뮤")).toBe("spa"); // only special STAB moves of power 80+
-    expect(kind("지라치")).toBe("spa"); // both kinds, but special has 2x as many counting TMs
-    expect(kind("덩쿠림보")).toBe("atk");
+  it("equal stats go to the stronger attacking set", () => {
+    expect(kind("뮤")).toBe("spa");
+    expect(kind("지라치")).toBe("spa");
   });
 
-  it("keeps clear stat leaders and real mixed attackers", () => {
+  it("otherwise the higher stat, and the exception list stays mixed", () => {
     expect(kind("대짱이")).toBe("atk");
     expect(kind("리자몽")).toBe("spa");
-    expect(kind("원시그란돈")).toBe("hybrid");
+    expect(kind("거북왕")).toBe("spa"); // 83/85 even with Wave Crash
+    expect(kind("덩쿠림보")).toBe("spa"); // 100/110
+    expect(kind("원시그란돈")).toBe("atk");
+    expect(kind("망나뇽")).toBe("hybrid");
   });
 });
