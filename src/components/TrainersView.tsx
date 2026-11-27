@@ -4,7 +4,6 @@ import { typeStyle } from "../lib/color";
 import type { Dex } from "../lib/dex";
 import {
   EVIL_TEAMS,
-  GYM_WAVES,
   REGIONS,
   TYPE_KEY_KO,
   baseLevelForWave,
@@ -96,7 +95,6 @@ export function TrainersView({ dex }: { dex: Dex }) {
     return <div className="trainer-party">{rows.map((s, i) => slotView(s, i, !!opts?.ace && i === last))}</div>;
   };
 
-  /** note: undefined = default hint for signature-only trainers, null = no note */
   const card = (t: Trainer, extra?: string, note?: string | null, opts?: { ace?: boolean }) => (
     <article key={t.type} className="trainer-card">
       {t.sprite && (
@@ -115,9 +113,6 @@ export function TrainersView({ dex }: { dex: Dex }) {
       </header>
       {party(t, opts)}
       {note && <p className="small muted">{note}</p>}
-      {note === undefined && t.signature && !t.slots.length && (
-        <p className="small muted">대표 포켓몬 (나머지는 전문 타입에서 무작위). 점선 「택1」 칸은 그중 한 마리가 나옵니다.</p>
-      )}
       </div>
     </article>
   );
@@ -151,8 +146,8 @@ export function TrainersView({ dex }: { dex: Dex }) {
         </div>
         <h3>보스</h3>
         <div className="trainer-grid">
-          {boss1.map((t) => card(t, "· 1차전 115웨이브", "6마리 모두 고정입니다. 점선 「택1」 칸은 그중 한 마리가 나옵니다."))}
-          {boss2.map((t) => card(t, "· 2차전 165웨이브", "6마리 모두 고정입니다. 점선 「택1」 칸은 그중 한 마리가 나옵니다."))}
+          {boss1.map((t) => card(t, "· 1차전 115웨이브", "6마리 모두 고정"))}
+          {boss2.map((t) => card(t, "· 2차전 165웨이브", "6마리 모두 고정"))}
         </div>
       </div>
     );
@@ -215,30 +210,18 @@ export function TrainersView({ dex }: { dex: Dex }) {
 
       {section === "evil" && (
         <>
-          <p className="small muted">
-            한 판에 아래 조직 중 하나만 나옵니다. 간부는 66·114·164웨이브, 보스는 115웨이브(1차전)와 165웨이브(2차전)에
-            나옵니다.
-          </p>
           {EVIL_TEAMS.map((_, i) => teamBlock(i))}
         </>
       )}
 
       {section === "league" && (
         <>
-          <p className="small muted">
-            한 판에 아래 리그 중 하나가 정해져 사천왕 4명(182·184·186·188웨이브)과 챔피언(190웨이브)이 모두 그 리그에서
-            나옵니다. "A 또는 B" 자리는 둘 중 한 명입니다.
-          </p>
           {REGIONS.map((_, i) => leagueBlock(i))}
         </>
       )}
 
       {section === "gym" && (
         <>
-          <p className="small muted">
-            클래식에서 관장은 {GYM_WAVES.join("·")} 웨이브(판에 따라 10씩 뒤)에 그때 있는 바이옴의 관장 중 한 명이 나옵니다. 기준
-            레벨은 대략 {GYM_WAVES.map((w) => `${w}웨이브 ${baseLevelForWave(w)}`).join(", ")}입니다.
-          </p>
           {gymByBiome.map(({ biome, leaders }) => (
             <div key={biome.id} className="trainer-group">
               <h2>{biome.name}</h2>

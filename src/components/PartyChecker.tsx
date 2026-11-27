@@ -244,10 +244,6 @@ export function PartyChecker({
                 </li>
               ))}
             </ul>
-            <p className="small muted">
-              아래 카드에서 포켓몬을 누르면 맡을 포지션 기준의 성격·특성·시작 기술을 볼 수 있고, 지도 경로 추천에서 바이옴 이동
-              경로를 고를 수 있습니다.
-            </p>
           </section>
           <PartyCard index={0} title="내 파티" rec={result} dex={dex} status={status} typeBadge={typeBadge} warn={warn} />
         </>
@@ -439,7 +435,7 @@ function EvolutionPicker({
             ✕
           </button>
         </header>
-        <p className="muted small">파티에서 쓸 형태를 고르세요. 고른 형태의 능력치·타입·특성으로 점검하고 추천합니다.</p>
+        <p className="muted small">파티에서 쓸 형태를 고르세요</p>
         <div className="grid-view picker-grid">
           {forms.map((f, i) => {
             const st = c.owned.formStatus[f.idx];

@@ -205,10 +205,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
       {carries.length > 0 && (
       <div className="carry-bar">
         <p>
-          <b>이 포켓몬을 중심으로 파티를 선택합니다</b>{" "}
-          <span className="muted small">
-            나머지 {Math.max(partySize - carries.length, 0)}자리는 아래 조건으로 추천합니다
-          </span>
+          <b>이 포켓몬을 중심으로 파티를 선택합니다</b>
         </p>
         <div className="filters">
         {carries.map((id) => {
@@ -280,7 +277,7 @@ export function ClassicRecommenderView({ starters, dex, status, mode, onBuildFro
       </div>
       {error && <p className="error">{error}</p>}
       {results && round > 1 && results.length > 0 && (
-        <p className="muted small">{round}번째 추천 — 앞에서 보여준 파티와 2마리 이상 다른 조합입니다.</p>
+        <p className="muted small">{round}번째 추천</p>
       )}
       {results && results.length === 0 && (
         <p className="muted">
@@ -653,10 +650,7 @@ function TypeTable({ a, dex, typeBadge }: { a: PartyAnalysis; dex: Dex; typeBadg
           </tbody>
         </table>
       </div>
-      <p className="small muted">
-        점선 밑줄이 있는 칸은 특성·패시브 때문에 바뀐 배율이고, 마우스를 올리면 이유가 나옵니다. {dex.data.source.name} 데이터와
-        9세대 상성표 기준이며 날씨·필드·테라스탈은 반영하지 않습니다.
-      </p>
+      <p className="small muted">점선 밑줄이 있는 칸은 특성·패시브 때문에 바뀐 배율입니다.</p>
     </details>
   );
 }

@@ -92,8 +92,9 @@ export function ContactDialog({ onClose }: Props) {
           </button>
         </header>
         <p className="muted">
-          버그, 기능 제안, 잘못된 데이터 등 무엇이든 알려 주세요. 보내 주신
-          내용은 개발자에게 메일로 전달됩니다. 답장은 드리지 못합니다.
+          버그, 기능 제안, 잘못된 데이터 등 무엇이든 알려주세요.
+          <br />
+          보내 주신 내용은 개발자에게 메일로 전달됩니다.
         </p>
         <p className="muted small">
           세이브 파일 내용이나 이메일·연락처 같은 개인 정보는 적지 마세요.

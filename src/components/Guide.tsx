@@ -84,7 +84,8 @@ export function Guide() {
       <p className="muted small">
         추천 파티는 아래 역할 중 <b>선공형이나 스위퍼(물리·특수)를 최소 1마리</b> 넣고, 나머지로 약점을 보완하도록 짭니다.
       </p>
-      <p className="muted small">
+      <details className="guide-more muted small">
+        <summary>물리·특수 판정 기준</summary>
         공격 역할은 물리·특수로 나눕니다. 공격·특공 중 높은 쪽이 {classic.hybrid.minOffense} 이상이면서 둘이 비슷하거나(낮은 쪽이{" "}
         {Math.round(classic.hybrid.closeRatio * 100)}% 이상, 또는 {classic.hybrid.highMin} 이상이면서{" "}
         {Math.round(classic.hybrid.highRatio * 100)}% 이상), 메가진화·폼 변화로 주 공격이 바뀌는 포켓몬(한카리아스 메가Z 등),
@@ -92,7 +93,7 @@ export function Guide() {
         {classic.hybrid.minStabPower} 이상의 자속기가 한쪽 분류에만 있으면 그쪽으로만 평가합니다(뮤는 특수, 덩쿠림보는 물리).
         그 밖에는 능력치가 높은 쪽만 봅니다. 예를 들어 대짱이는 특공보다 공격이 높아 탁류 같은 특수기 대신 물리기로
         평가합니다.
-      </p>
+      </details>
       <div className="guide-roles">
         {ROLES.map((r) => (
           <article key={r.key} className="guide-card">

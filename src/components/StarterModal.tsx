@@ -245,10 +245,7 @@ export function SpeciesModal({ species, dex, owned, status, shiny, onClose }: Pr
           </div>
           <RibbonPanel family={family} dex={dex} owned={owned} hasSave={!!status} />
           <div className="wide">
-            <h3>
-              진화 계열 ({dex.familyName(species.family)}){" "}
-              <span className="muted small">— 사진을 누르면 그 포켓몬을 봅니다{status && " · 못 잡은 형태는 이름 옆에 발견만·미발견 표시"}</span>
-            </h3>
+            <h3>진화 계열 ({dex.familyName(species.family)})</h3>
             <div className="table-wrap">
               <table className="family">
                 <thead>
@@ -414,7 +411,9 @@ function NatureGrid({ unlocked, stats }: { unlocked: number[]; stats: readonly n
         document.body,
       )}
     <p className="nature-legend small muted">
-      <span className="legend-best">추천 성격</span> <span className="legend-fallback">차선책</span>
+      <span className="legend-best">추천 성격</span>
+      <br />
+      <span className="legend-fallback">차선책</span>
     </p>
     </>
   );

@@ -150,7 +150,7 @@ function HitDetail({ hit, dex }: { hit: Hit; dex: Dex }) {
       {hit.kind === "item" ? (
         <p>
           <span className={`item-name tier-${sp?.tier ?? "common"}`}>{hit.name}</span>{" "}
-          <span className="muted small">{TIER_NAMES[sp?.tier ?? "common"]} 등급 (게임 상점에서 나오는 등급)</span>
+          <span className="muted small">{TIER_NAMES[sp?.tier ?? "common"]}등급</span>
         </p>
       ) : (
         <div className="search-info">
@@ -158,7 +158,7 @@ function HitDetail({ hit, dex }: { hit: Hit; dex: Dex }) {
         </div>
       )}
       <h3>
-        {label} <span className="muted small">{users.length}개 형태 · 그림을 누르면 상세</span>
+        {label} <span className="muted small">{users.length}개 형태</span>
       </h3>
       {users.length === 0 ? (
         <p className="muted small">없습니다.</p>

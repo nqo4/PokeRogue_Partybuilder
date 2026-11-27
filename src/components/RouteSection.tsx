@@ -88,10 +88,7 @@ export function RouteSection({
           ))}
         </ol>
       )}
-      <p className="small muted">
-        아직 못 잡은 포켓몬을 만날 확률이 높고, 이 파티가 관장 타입에 약하지 않은 바이옴을 우선합니다. 지도가 없으면 다음 바이옴은
-        무작위이고, 확률로만 뜨는 연결은 선택지에 없을 수 있습니다.
-      </p>
+      <p className="small muted">아직 못잡은 포켓몬은 만날 확률이 높거나, 주 타입이 파티에 강하지 않은 바이옴을 우선합니다</p>
     </details>
   );
 }

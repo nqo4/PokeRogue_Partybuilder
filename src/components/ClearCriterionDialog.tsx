@@ -103,7 +103,7 @@ export function ClearCriterionDialog({ dex, starters, value, onApply, onClose }:
 
         {step === "mode" && (
           <p className="muted small">
-            클래식은 클리어 횟수로, 챌린지는 게임이 주는 리본으로 판단합니다. 엔드리스는 클리어 리본이 없어 고를 수 없습니다.
+            클래식은 클리어 횟수로, 챌린지는 게임이 주는 리본으로 판단합니다
           </p>
         )}
         {step === "option" && <p className="muted small">숫자는 리본을 받은 스타터 / 도전할 수 있는 스타터 (진화·폼 포함)</p>}

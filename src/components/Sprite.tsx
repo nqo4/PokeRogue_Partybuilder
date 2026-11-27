@@ -80,7 +80,6 @@ export function Sprite({ species, size = 48, warning, shiny }: Props) {
         createPortal(
           <span className="sprite-tip" style={{ left: tip.x, top: tip.y }}>
             <b>No.{no}</b> {species.name}
-            {select && <span className="muted"> · 눌러서 상세 보기</span>}
             {warning && <span className="sprite-tip-warn">{warning}</span>}
           </span>,
           document.body,

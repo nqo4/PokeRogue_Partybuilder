@@ -329,6 +329,9 @@ tr.current > td { background: var(--hover); }
 
 /* ── 가이드 */
 .guide h2 { margin: 20px 0 8px; }
+.guide-more { margin: 8px 0; }
+.guide-more summary { cursor: pointer; width: fit-content; }
+.guide-more[open] summary { margin-bottom: 4px; }
 .guide-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .guide-card { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .guide-card h3 { margin: 0 0 6px; }

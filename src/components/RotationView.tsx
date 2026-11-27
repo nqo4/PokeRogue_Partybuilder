@@ -76,11 +76,7 @@ export function RotationView({ dex, owned }: Props) {
           <button onClick={() => setMonth({ y: now.getUTCFullYear(), m: now.getUTCMonth() })}>오늘</button>
         </span>
       </div>
-      <p className="muted small">
-        {view === "legend" ? "알 뽑기의 전설 알 픽업 포켓몬입니다. " : "포켓러스에 걸린 스타터 5마리입니다. 이 포켓몬으로 시작하면 경험치를 더 받습니다. "}
-        날짜는 게임처럼 UTC 기준이라 한국 시간 오전 9시에 바뀝니다.
-        {owned && " 흐린 포켓몬은 아직 보유하지 않았습니다."}
-      </p>
+      <p className="muted small">한국 시간 기준 오전 9시에 변경</p>
 
       {view === "legend" ? (
         <div className="rot-calendar">
